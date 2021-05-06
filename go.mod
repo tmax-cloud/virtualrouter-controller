@@ -1,25 +1,28 @@
 // This is a generated file. Do not edit directly.
 
-module github.com/cho4036/virtual-router
+module github.com/cho4036/virtualrouter-controller
 
 go 1.15
 
 require (
-	github.com/containerd/containerd v1.5.0 // indirect
-	github.com/coreos/go-iptables v0.6.0 // indirect
-	github.com/docker/docker v20.10.6+incompatible // indirect
-	github.com/docker/go-connections v0.4.0 // indirect
-	github.com/gorilla/mux v1.8.0 // indirect
-	github.com/moby/term v0.0.0-20201216013528-df9cb8a40635 // indirect
-	github.com/morikuni/aec v1.0.0 // indirect
-	github.com/sirupsen/logrus v1.8.1 // indirect
-	github.com/vishvananda/netlink v1.1.1-0.20201029203352-d40f9887b852 // indirect
-	github.com/vishvananda/netns v0.0.0-20210104183010-2eb08e3e575f // indirect
+	github.com/golang/protobuf v1.4.3 // indirect
+	github.com/google/go-cmp v0.5.4 // indirect
+	github.com/google/uuid v1.2.0 // indirect
+	github.com/kr/pretty v0.2.1 // indirect
+	github.com/onsi/gomega v1.10.3 // indirect
+	github.com/stretchr/testify v1.6.1 // indirect
+	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2 // indirect
+	golang.org/x/sys v0.0.0-20210324051608-47abb6519492 // indirect
+	golang.org/x/text v0.3.4 // indirect
+	google.golang.org/protobuf v1.25.0 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/api v0.21.0
 	k8s.io/apimachinery v0.21.0
 	k8s.io/client-go v0.21.0
 	k8s.io/code-generator v0.21.0
 	k8s.io/klog/v2 v2.8.0
+	k8s.io/kube-openapi v0.0.0-20201113171705-d219536bb9fd // indirect
+	k8s.io/utils v0.0.0-20201110183641-67b214c5f920 // indirect
 )
 
 replace (
