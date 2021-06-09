@@ -1,8 +1,8 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: virtual-router-controller-role
-  namespace: virtual-router
+  name: virtualrouter-controller-role
+  namespace: virtualrouter
 rules:
 - apiGroups:
   - "tmax.hypercloud.com"
@@ -38,36 +38,36 @@ rules:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: virtual-router-controller-sa
-  namespace: virtual-router
+  name: virtualrouter-controller-sa
+  namespace: virtualrouter
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: virtual-router-controller-rb
-  namespace: virtual-router
+  name: virtualrouter-controller-rb
+  namespace: virtualrouter
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: virtual-router-controller-role
+  name: virtualrouter-controller-role
 subjects:
 - kind: ServiceAccount
-  name: virtual-router-controller-sa
-  namespace: virtual-router
+  name: virtualrouter-controller-sa
+  namespace: virtualrouter
 ---
 apiVersion: v1
 kind: Pod
 metadata:
   name: controller
-  namespace: virtual-router
+  namespace: virtualrouter
   labels:
     app: controller
 spec:
   nodeName: node01
-  serviceAccount: virtual-router-controller-sa
+  serviceAccount: virtualrouter-controller-sa
   containers:
   - name: controller
-    image: 192.168.7.191:5000/virtual-router:0.1
+    image: 192.168.7.191:5000/virtualrouter-controller:0.0.2
     imagePullPolicy: Always
     # args:
     # - "-lease-lock-name=controller-lease-lock"
