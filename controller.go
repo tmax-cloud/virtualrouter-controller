@@ -23,6 +23,8 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
+	rbac_v1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -45,6 +47,14 @@ import (
 )
 
 const controllerAgentName = "virtual-router"
+
+var virtualRouterNamespace = "virtualrouter"
+
+const (
+	serviceAccountName     = "virtualrouter-sa"
+	clusterRoleName        = "virtualrouter-role"
+	clusterRoleBindingName = "virtualrouter-rb"
+)
 
 const (
 	// SuccessSynced is used as part of the Event 'reason' when a VirtualRouter is synced
@@ -391,7 +401,7 @@ func (c *Controller) handleObject(obj interface{}) {
 // the VirtualRouter resource that 'owns' it.
 func newDeployment(virtualRouter *samplev1alpha1.VirtualRouter) *appsv1.Deployment {
 	labels := map[string]string{
-		"app":        "nginx",
+		"app":        "virtualrouter",
 		"controller": virtualRouter.Name,
 	}
 	return &appsv1.Deployment{
@@ -412,14 +422,75 @@ func newDeployment(virtualRouter *samplev1alpha1.VirtualRouter) *appsv1.Deployme
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
+					ServiceAccountName: "virtualrouter-sa",
 					Containers: []corev1.Container{
 						{
-							Name:  "nginx",
-							Image: "nginx:latest",
+							Name:            "virtualrouter",
+							Image:           "192.168.7.191:5000/virtualrouter:0.0.2",
+							ImagePullPolicy: "Always",
+							SecurityContext: &v1.SecurityContext{
+								Capabilities: &v1.Capabilities{
+									Add: []v1.Capability{
+										v1.Capability("NET_RAW"),
+									},
+								},
+								Privileged: func(b bool) *bool {
+									return &b
+								}(true),
+							},
 						},
 					},
 				},
 			},
 		},
 	}
+}
+
+func (c *Controller) ensureVirtualRouterSA() error {
+	_, err := c.kubeclientset.CoreV1().ServiceAccounts(virtualRouterNamespace).Get(context.TODO(), serviceAccountName, metav1.GetOptions{})
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			klog.Error(err)
+			return err
+		}
+		_, err = c.kubeclientset.CoreV1().ServiceAccounts(virtualRouterNamespace).Create(context.TODO(), &v1.ServiceAccount{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      serviceAccountName,
+				Namespace: virtualRouterNamespace,
+			},
+		}, metav1.CreateOptions{})
+		if err != nil {
+			klog.Error(err)
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *Controller) ensureVirtualRouterClusterRole() error {
+	_, err := c.kubeclientset.RbacV1().ClusterRoles().Get(context.TODO(), clusterRoleName, metav1.GetOptions{})
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			klog.Error(err)
+			return err
+		}
+
+		_, err = c.kubeclientset.RbacV1().ClusterRoles().Create(context.TODO(), &rbac_v1.ClusterRole{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: clusterRoleName,
+			},
+			Rules: []rbac_v1.PolicyRule{
+				{
+					APIGroups: []string{"virtualrouter" + samplev1alpha1.SchemeGroupVersion.Group},
+					Resources: []string{"*"},
+					Verbs:     []string{"*"},
+				},
+			},
+		}, metav1.CreateOptions{})
+		if err != nil {
+			klog.Error(err)
+			return err
+		}
+	}
+	return nil
 }
