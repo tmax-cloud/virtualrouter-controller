@@ -69,6 +69,16 @@ spec:
   - name: controller
     image: 10.0.0.4:5000/virtualrouter-controller:0.0.1
     imagePullPolicy: Always
+
+# For virtual router instance
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: virtualrouter-sa
+  namespace: virtualrouter
+---
+
     # args:
     # - "-lease-lock-name=controller-lease-lock"
     # - "-lease-lock-namespace=sample-controller"

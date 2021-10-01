@@ -251,6 +251,7 @@ func (c *Controller) processNextWorkItem() bool {
 // converge the two. It then updates the Status block of the VirtualRouter resource
 // with the current status of the resource.
 func (c *Controller) syncHandler(key string) error {
+	klog.Info(key)
 	// Convert the namespace/name string into a distinct namespace and name
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
@@ -285,6 +286,7 @@ func (c *Controller) syncHandler(key string) error {
 	deployment, err := c.deploymentsLister.Deployments(virtualRouter.Namespace).Get(deploymentName)
 	// If the resource doesn't exist, we'll create it
 	if errors.IsNotFound(err) {
+		klog.Info("NotFound Deploy start")
 		deployment, err = c.kubeclientset.AppsV1().Deployments(virtualRouter.Namespace).Create(context.TODO(), newDeployment(virtualRouter), metav1.CreateOptions{})
 	}
 

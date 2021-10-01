@@ -1,16 +1,24 @@
 import subprocess
 import os
 import getopt, sys
+import time
 
-PKG_NAME = 'github.com/cho4036/virtualrouter-controller'
-GO_BINARY_NAME = 'virtualrouter-controller'
+# PKG_NAME = 'github.com/cho4036/virtualrouter-controller'
+CONTROLLER_GO_BINARY_NAME = '../build/virtualroutermanager/virtualrouter-controller'
+CONTROLLER_PKG_NAME = '../cmd/virtualroutermanager/main.go'
+DAEMON_GO_BINARY_NAME = '../build/daemon/daemon'
+DAEMON_PKG_NAME = '../cmd/daemon/main.go'
+
 DOCKER_REGISTRY = '10.0.0.4:5000/'
-DOCKER_IMAGE_NAME = "virtualrouter-controller"
-DOCKER_IMAGE_TAG = "0.0.1"
+CONTROLLER_DOCKER_IMAGE_NAME = "virtualrouter-controller"
+CONTROLLER_DOCKER_IMAGE_TAG = "0.0.1"
+DAEMON_DOCKER_IMAGE_NAME = 'daemon'
+DAEMON_DOCKER_IMAGE_TAG = "0.0.1"
 
 def subprocess_open(command):
     p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
     (stdoutdata, stderrdata) = p.communicate()
+    p.wait()
     return stdoutdata, stderrdata
 
 def go_build(package, output):
@@ -27,15 +35,28 @@ def docker_image_check(name, tag, registry):
         return 
     return out
 
-
-def docker_build(name, tag, registry):
+def docker_clean(name, tag, registry):
     checkout = docker_image_check(name,tag,registry)
     # print("checkout Type: " + type(checkout))
     if checkout == "" :
         print("There is no image")
     else :
         print("deleting "+ checkout)
-        subprocess_open(['docker', 'rmi', checkout])
+        out, err = subprocess_open(['docker', 'rmi', checkout])
+        print(out)
+        print(err)
+        return 
+
+def docker_build(name, tag, registry):
+    os.chdir("../build/virtualroutermanager")
+    docker_clean(name,tag,registry)
+    # checkout = docker_image_check(name,tag,registry)
+    # print("checkout Type: " + type(checkout))
+    # if checkout == "" :
+    #     print("There is no image")
+    # else :
+    #     print("deleting "+ checkout)
+    #     subprocess_open(['docker', 'rmi', checkout])
     image = registry + name + ":" + tag
     out, err = subprocess_open(['docker', 'build', '-t', image, "." ])
     if out != "" or err != "":
@@ -51,43 +72,92 @@ def docker_push(name, tag, registry):
 
 def main(argv):
     FILE_NAME = argv[0]
-    try :
-        if len(argv) < 2 :
+    program = ""
+    pkg_name = ""
+    go_binary_name = ""
+    docker_image_name = ""
+    docker_image_tag = ""
+    print(FILE_NAME)
+    if len(argv) < 2 :
             print(FILE_NAME, "few arguments. Choose at least one option")
             sys.exit(2)
-
-        opts, etc_args = getopt.getopt(argv[1], "h", ["help", "gobuild"])
+    try :
+        opts, etc_args = getopt.getopt(sys.argv[1:], "ap:h", ["help", "gobuild", "dockerbuild", "dockerpush", "all", "program="])
 
     except getopt.GetoptError:
         print(FILE_NAME, '--gobuild , --dockerbuild or --dockerpush')
         sys.exit(2)
-    print(argv[1], "1")
-    for opt, arg in opts:
-        print(opts)
+    for opt, args in opts:
+        if opt in ("-p", "--program"):
+            if not(args == "daemon" or args == "controller"): 
+                print("Wrong Program name. Select either \"daemon\" or \"manager\"")
+                return
+            program = args
+
+    if program == "daemon":
+        pkg_name = DAEMON_PKG_NAME
+        go_binary_name = DAEMON_GO_BINARY_NAME
+        docker_image_name = DAEMON_DOCKER_IMAGE_NAME
+        docker_image_tag = DAEMON_DOCKER_IMAGE_TAG
+    elif program == "controller":
+        pkg_name = CONTROLLER_PKG_NAME
+        go_binary_name = CONTROLLER_GO_BINARY_NAME
+        docker_image_name = CONTROLLER_DOCKER_IMAGE_NAME
+        docker_image_tag = CONTROLLER_DOCKER_IMAGE_TAG
+    print(program)
+    for opt, args in opts:
+        print(opt)
         if opt in ("-h", "--help"):
             print(FILE_NAME, '--gobuild , --dockerbuild or --dockerpush')
-            sys.exit()
+            sys.exit(0)
+        elif opt in ("-a","-all"):
+            print("print", pkg_name, go_binary_name)
+            out, err = go_build(package=pkg_name, output=go_binary_name)
+            if err != "" or out != "":
+                print("Error: " + err + ", Out: " + out)
+                sys.exit(1)
+            print("Go build done")
+
+            out, err = docker_build(name=docker_image_name,tag=docker_image_tag, registry=DOCKER_REGISTRY)
+            if err != "":
+                print("Error: " + err)
+                sys.exit(1)
+            print(out)
+            print("Docker build done")
+
+            out, err = docker_push(name=docker_image_name,tag=docker_image_tag, registry=DOCKER_REGISTRY)
+            if err != "":
+                print("Error: " + err )
+                sys.exit(1)
+            print(out)
+            print("Docker push done")
+
+            docker_clean(name=docker_image_name,tag=docker_image_tag, registry=DOCKER_REGISTRY)
+
+            break
         elif opt in ("--gobuild"):
-            print("print", PKG_NAME, GO_BINARY_NAME)
-            out, err = go_build(package=PKG_NAME, output=GO_BINARY_NAME)
+            print("print", pkg_name, go_binary_name)
+            out, err = go_build(package=pkg_name, output=go_binary_name)
             if err != "" or out != "":
                 print("Error: " + err + ", Out: " + out)
                 sys.exit(1)
             print("Go build done")
         elif opt in ("--dockerbuild"):
-            out, err = docker_build(name=DOCKER_IMAGE_NAME,tag=DOCKER_IMAGE_TAG, registry=DOCKER_REGISTRY)
+            out, err = docker_build(name=docker_image_name,tag=docker_image_tag, registry=DOCKER_REGISTRY)
             if err != "":
                 print("Error: " + err)
                 sys.exit(1)
             print(out)
             print("Docker build done")
         elif opt in ("dockerpush"):
-            out, err = docker_push(name=DOCKER_IMAGE_NAME,tag=DOCKER_IMAGE_TAG, registry=DOCKER_REGISTRY)
+            out, err = docker_push(name=docker_image_name,tag=docker_image_tag, registry=DOCKER_REGISTRY)
             if err != "":
                 print("Error: " + err )
                 sys.exit(1)
             print(out)
             print("Docker push done")
+            docker_clean(name=docker_image_name,tag=docker_image_tag, registry=DOCKER_REGISTRY)
+
 
     # os.chdir("../")
     # currentPath = os.getcwd()
