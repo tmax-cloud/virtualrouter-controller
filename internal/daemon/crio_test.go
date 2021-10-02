@@ -7,6 +7,8 @@ import (
 )
 
 func TestDaemon(t *testing.T) {
-	daemon.Get_CRICTL_CONFIG()
-	daemon.TestCriContainerList()
+	// daemon.Get_CRICTL_CONFIG()
+	// daemon.TestCriContainerList()
+	daemon.Preinit()
+	// daemon.NetDial()
 }

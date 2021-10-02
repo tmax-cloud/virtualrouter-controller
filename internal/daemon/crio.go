@@ -14,7 +14,10 @@ import (
 
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
+	cri "k8s.io/cri-api/pkg/apis"
+	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
+	remote "k8s.io/kubernetes/pkg/kubelet/cri/remote"
+
 	"k8s.io/klog/v2"
 )
 
@@ -45,6 +48,49 @@ var (
 	// DisablePullOnRun disable pulling image on run requests
 	DisablePullOnRun bool
 )
+
+func NetDial() {
+	_, err := net.Dial("unix", "/var/run/crio/crio.sock")
+	if err != nil {
+		fmt.Println(err)
+	}
+
+}
+
+//// kubelet code cloned
+func Preinit() {
+	// Get_CRICTL_CONFIG()
+	var remoteRuntimeService cri.RuntimeService
+	var remoteImageService cri.ImageManagerService
+	var err error
+
+	// fmt.Println(DEFAULT_RUNTIME_ENDPOINTS)
+	// fmt.Println(Timeout)
+	Timeout, err = time.ParseDuration("5s")
+	if err != nil {
+		fmt.Println(err)
+	}
+	// fmt.Println(Timeout)
+	if remoteRuntimeService, err = remote.NewRemoteRuntimeService(DEFAULT_RUNTIME_ENDPOINTS[0], Timeout); err != nil {
+		return
+	}
+	// if remoteRuntimeService, err = remote.NewRemoteRuntimeService(strings.Split(RuntimeEndpoint, "unix://")[1], Timeout); err != nil {
+	// 	return
+	// }
+	l, err := remoteRuntimeService.ListContainers(nil)
+	// fmt.Println(l)
+
+	for _, container := range l {
+		fmt.Println(container.GetLabels()["io.kubernetes.pod.name"])
+	}
+	if remoteImageService, err = remote.NewRemoteImageService(DEFAULT_IMAGE_ENDPOINTS[0], Timeout); err != nil {
+		return
+	}
+
+	remoteImageService.ListImages(&runtimeapi.ImageFilter{})
+}
+
+/////
 
 func Get_CRICTL_CONFIG() {
 	file, err := os.Open(CRIO_CONFIG_DIR)
@@ -264,23 +310,23 @@ func getImageClientConnection() (*grpc.ClientConn, error) {
 	return getConnection([]string{ImageEndpoint})
 }
 
-func getRuntimeClient() (pb.RuntimeServiceClient, *grpc.ClientConn, error) {
+func getRuntimeClient() (runtimeapi.RuntimeServiceClient, *grpc.ClientConn, error) {
 	// Set up a connection to the server.
 	conn, err := getRuntimeClientConnection()
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "connect")
 	}
-	runtimeClient := pb.NewRuntimeServiceClient(conn)
+	runtimeClient := runtimeapi.NewRuntimeServiceClient(conn)
 	return runtimeClient, conn, nil
 }
 
-func getImageClient() (pb.ImageServiceClient, *grpc.ClientConn, error) {
+func getImageClient() (runtimeapi.ImageServiceClient, *grpc.ClientConn, error) {
 	// Set up a connection to the server.
 	conn, err := getImageClientConnection()
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "connect")
 	}
-	imageClient := pb.NewImageServiceClient(conn)
+	imageClient := runtimeapi.NewImageServiceClient(conn)
 	return imageClient, conn, nil
 }
 
@@ -329,10 +375,10 @@ func matchesRegex(pattern, target string) bool {
 	return matched
 }
 
-// type containerByCreated []*pb.Container
+// type containerByCreated []*runtimeapi.Container
 
-func getContainersList(containersList []*pb.Container, opts listOptions) []*pb.Container {
-	filtered := []*pb.Container{}
+func getContainersList(containersList []*runtimeapi.Container, opts listOptions) []*runtimeapi.Container {
+	filtered := []*runtimeapi.Container{}
 	for _, c := range containersList {
 		// Filter by pod name/namespace regular expressions.
 		if matchesRegex(opts.nameRegexp, c.Metadata.Name) {
@@ -357,33 +403,33 @@ func getContainersList(containersList []*pb.Container, opts listOptions) []*pb.C
 	return filtered[:n]
 }
 
-func ListContainers(runtimeClient pb.RuntimeServiceClient, imageClient pb.ImageServiceClient, opts listOptions) error {
-	filter := &pb.ContainerFilter{}
+func ListContainers(runtimeClient runtimeapi.RuntimeServiceClient, imageClient runtimeapi.ImageServiceClient, opts listOptions) error {
+	filter := &runtimeapi.ContainerFilter{}
 	if opts.id != "" {
 		filter.Id = opts.id
 	}
 	if opts.podID != "" {
 		filter.PodSandboxId = opts.podID
 	}
-	st := &pb.ContainerStateValue{}
+	st := &runtimeapi.ContainerStateValue{}
 	if !opts.all && opts.state == "" {
-		st.State = pb.ContainerState_CONTAINER_RUNNING
+		st.State = runtimeapi.ContainerState_CONTAINER_RUNNING
 		filter.State = st
 	}
 	if opts.state != "" {
-		st.State = pb.ContainerState_CONTAINER_UNKNOWN
+		st.State = runtimeapi.ContainerState_CONTAINER_UNKNOWN
 		switch strings.ToLower(opts.state) {
 		case "created":
-			st.State = pb.ContainerState_CONTAINER_CREATED
+			st.State = runtimeapi.ContainerState_CONTAINER_CREATED
 			filter.State = st
 		case "running":
-			st.State = pb.ContainerState_CONTAINER_RUNNING
+			st.State = runtimeapi.ContainerState_CONTAINER_RUNNING
 			filter.State = st
 		case "exited":
-			st.State = pb.ContainerState_CONTAINER_EXITED
+			st.State = runtimeapi.ContainerState_CONTAINER_EXITED
 			filter.State = st
 		case "unknown":
-			st.State = pb.ContainerState_CONTAINER_UNKNOWN
+			st.State = runtimeapi.ContainerState_CONTAINER_UNKNOWN
 			filter.State = st
 		default:
 			klog.Error("--state should be one of created, running, exited or unknown")
@@ -396,7 +442,7 @@ func ListContainers(runtimeClient pb.RuntimeServiceClient, imageClient pb.ImageS
 	if opts.labels != nil {
 		filter.LabelSelector = opts.labels
 	}
-	request := &pb.ListContainersRequest{
+	request := &runtimeapi.ListContainersRequest{
 		Filter: filter,
 	}
 	klog.Info("ListContainerRequest: %v", request)
