@@ -6,4 +6,7 @@ type Config struct {
 
 	InternalInterfaceName string
 	ExternalInterfaceName string
+
+	InternalIPCIDR string
+	ExternalIPCIDR string
 }

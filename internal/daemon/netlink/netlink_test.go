@@ -12,6 +12,7 @@ func TestDaemon(t *testing.T) {
 	var rootNetlinkHandle *remoteNetlink.Handle
 	var err error
 	// var targetPid int
+
 	if rootNetlinkHandle, err = internalNetlink.GetRootNetlinkHandle(); err != nil {
 		fmt.Println(err)
 	}
@@ -20,11 +21,11 @@ func TestDaemon(t *testing.T) {
 		InternalBridgeName: "testInt",
 		ExternalBridgeName: "testExt",
 	}
-	if err := internalNetlink.Initialize(rootNetlinkHandle, *cfg); err != nil {
+	if err := internalNetlink.Initialize(cfg); err != nil {
 		fmt.Println(err)
 	}
 
-	if err := internalNetlink.SetVethInterface(rootNetlinkHandle, "testVeth"); err != nil {
+	if _, err := internalNetlink.SetVethInterface(rootNetlinkHandle, "testVeth"); err != nil {
 		fmt.Println(err)
 	}
 
@@ -41,7 +42,7 @@ func TestDaemon(t *testing.T) {
 	// var veth
 	// if err := internalNetlink.SetVethToContainer(rootNetlinkHandle, targetNetlinkHandle,  )
 
-	if err := internalNetlink.Clear(rootNetlinkHandle, *cfg); err != nil {
+	if err := internalNetlink.Clear(cfg); err != nil {
 		fmt.Println(err)
 	}
 }
