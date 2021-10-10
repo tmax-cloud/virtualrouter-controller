@@ -18,11 +18,11 @@ DAEMON_DOCKER_IMAGE_TAG = "0.0.1"
 def subprocess_open(command):
     p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
     (stdoutdata, stderrdata) = p.communicate()
-    p.wait()
     return stdoutdata, stderrdata
 
 def go_build(package, output):
-    out, err = subprocess_open(['go', 'build', '-a', '-o', output, package])
+    # out, err = subprocess_open(['go', 'build', '-a', '-o', output, package])
+    out, err = subprocess_open(['go', 'build', '-o', output, package])
     if out != "" or err != "":
         return out, err
     return "", ""
@@ -94,7 +94,7 @@ def main(argv):
 
         if opt in ("-p", "--program"):
             if not(args == "daemon" or args == "controller"): 
-                print("Wrong Program name. Select either \"daemon\" or \"manager\"")
+                print("Wrong Program name. Select either \"daemon\" or \"controller\"")
                 return
             program = args
 

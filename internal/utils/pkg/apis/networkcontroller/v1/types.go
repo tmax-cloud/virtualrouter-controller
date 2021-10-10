@@ -34,8 +34,11 @@ type VirtualRouter struct {
 
 // VirtualRouterSpec is the spec for a VirtualRouter resource
 type VirtualRouterSpec struct {
-	DeploymentName string `json:"deploymentName"`
-	Replicas       *int32 `json:"replicas"`
+	DeploymentName string   `json:"deploymentName"`
+	Replicas       *int32   `json:"replicas"`
+	VlanNumber     *int32   `json:"vlanNumber" `
+	InternalIPs    []string `json:"internalIPs"`
+	ExternalIPs    []string `json:"externalIPs"`
 }
 
 // VirtualRouterStatus is the status for a VirtualRouter resource

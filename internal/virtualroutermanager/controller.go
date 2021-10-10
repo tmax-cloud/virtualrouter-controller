@@ -21,8 +21,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -408,7 +406,7 @@ func newDeployment(virtualRouter *samplev1alpha1.VirtualRouter) *appsv1.Deployme
 		"app":        "virtualrouter",
 		"controller": virtualRouter.Name,
 	}
-	var uuid = uuid.Must(uuid.NewRandom())
+	// var uuid = uuid.Must(uuid.NewRandom())
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      virtualRouter.Spec.DeploymentName,
@@ -430,7 +428,8 @@ func newDeployment(virtualRouter *samplev1alpha1.VirtualRouter) *appsv1.Deployme
 					ServiceAccountName: "virtualrouter-sa",
 					Containers: []corev1.Container{
 						{
-							Name:            "virtualrouter-" + uuid.String(),
+							// Name:            "virtualrouter-" + uuid.String(),
+							Name:            virtualRouter.Name,
 							Image:           "10.0.0.4:5000/virtualrouter:0.0.1",
 							ImagePullPolicy: "Always",
 							SecurityContext: &v1.SecurityContext{
