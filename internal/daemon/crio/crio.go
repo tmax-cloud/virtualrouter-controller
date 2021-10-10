@@ -63,13 +63,13 @@ type Inspect struct {
 	Contain Container
 }
 
-func GetContainerPid(containerName string) int {
+func GetContainerPid(containerID string) int {
 	// fmt.Println(containerName)
 	var i Container
 
 	var err error
-	fmt.Println(containerName)
-	cmd := exec.Command("crictl", "inspect", containerName, "-o", "json")
+	fmt.Println(containerID)
+	cmd := exec.Command("crictl", "inspect", containerID, "-o", "json")
 	aa, err := cmd.Output()
 	if err != nil {
 		klog.Error(err)
@@ -77,7 +77,7 @@ func GetContainerPid(containerName string) int {
 	json.Unmarshal(aa, &i)
 	fmt.Println(i.Info.Pid)
 	return i.Info.Pid
-	// cmd := exec.Command("crictl", "inspect", containerName, "-o", "yaml")
+	// cmd := exec.Command("crictl", "inspect", containerID, "-o", "yaml")
 	// grepCmd := exec.Command("grep", "pid")
 	// grepCmd.Stdin, err = cmd.StdoutPipe()
 	// if err != nil {
@@ -151,7 +151,7 @@ func Initialize(cfg *CrioConfig) error {
 }
 
 //// kubelet code cloned
-func Preinit() string {
+func GetContainerIDFromContainerName(containerName string, cfg *CrioConfig) string {
 
 	// Get_CRICTL_CONFIG()
 	var remoteRuntimeService cri.RuntimeService
@@ -165,7 +165,7 @@ func Preinit() string {
 		fmt.Println(err)
 	}
 	// fmt.Println(Timeout)
-	if remoteRuntimeService, err = remote.NewRemoteRuntimeService(DEFAULT_RUNTIME_ENDPOINTS[0], Timeout); err != nil {
+	if remoteRuntimeService, err = remote.NewRemoteRuntimeService(cfg.RuntimeEndpoint, Timeout); err != nil {
 		return ""
 	}
 	// if remoteRuntimeService, err = remote.NewRemoteRuntimeService(strings.Split(RuntimeEndpoint, "unix://")[1], Timeout); err != nil {
@@ -175,7 +175,7 @@ func Preinit() string {
 	// fmt.Println(l)
 	// var id string
 	for _, container := range l {
-		if container.GetLabels()["io.kubernetes.pod.name"] == "example-virtualrouter-55455dcfc8-d22wh" {
+		if container.GetLabels()["io.kubernetes.pod.name"] == containerName {
 			// fmt.Println(container.GetPodSandboxId())
 			// return container.GetPodSandboxId()
 			// id = container.GetPodSandboxId()
