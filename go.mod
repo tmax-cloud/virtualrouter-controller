@@ -5,13 +5,15 @@ module github.com/cho4036/virtualrouter-controller
 go 1.15
 
 require (
-	github.com/google/uuid v1.2.0 // indirect
+	github.com/google/uuid v1.2.0
 	github.com/hashicorp/golang-lru v0.5.3 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/onsi/ginkgo v1.14.1 // indirect
 	github.com/onsi/gomega v1.10.3 // indirect
 	github.com/pkg/errors v0.9.1
+	github.com/vishvananda/netlink v1.1.0
+	github.com/vishvananda/netns v0.0.0-20200520041808-52d707b772fe
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2 // indirect
 	golang.org/x/oauth2 v0.0.0-20201109201403-9fd604954f58 // indirect
 	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1 // indirect
@@ -24,20 +26,22 @@ require (
 	k8s.io/client-go v11.0.0+incompatible
 	k8s.io/cri-api v0.0.0
 	k8s.io/klog/v2 v2.8.0
-	k8s.io/kube-openapi v0.0.0-20201113171705-d219536bb9fd // indirect
-	k8s.io/utils v0.0.0-20201110183641-67b214c5f920 // indirect
+	k8s.io/kubernetes v0.0.0-00010101000000-000000000000
 )
 
 replace (
-	k8s.io/api => k8s.io/api v0.0.0-20210329192645-60680b5087d3
+	k8s.io/api => k8s.io/api v0.19.15
+	// k8s.io/api => k8s.io/api v0.0.0-20210329192645-60680b5087d3
 	k8s.io/apiextensions-apiserver => k8s.io/kubernetes/staging/src/k8s.io/apiextensions-apiserver v0.0.0-20200804142048-1afc53514032
-	k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20210329192041-0c7db653e2b6
+	k8s.io/apimachinery => k8s.io/apimachinery v0.19.15
+	// k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20210329192041-0c7db653e2b6
 	k8s.io/apiserver => k8s.io/kubernetes/staging/src/k8s.io/apiserver v0.0.0-20201201102839-3321f00ed14e
 	k8s.io/cli-runtime => k8s.io/kubernetes/staging/src/k8s.io/cli-runtime v0.0.0-20201201102839-3321f00ed14e
-	k8s.io/client-go => k8s.io/client-go v0.0.0-20210329193902-8b9f5901612d
+	// k8s.io/client-go => k8s.io/client-go v0.0.0-20210329193902-8b9f5901612d
+	k8s.io/client-go => k8s.io/client-go v0.19.15
 	k8s.io/cloud-provider => k8s.io/kubernetes/staging/src/k8s.io/cloud-provider v0.0.0-20201201102839-3321f00ed14e
 	k8s.io/cluster-bootstrap => k8s.io/kubernetes/staging/src/k8s.io/cluster-bootstrap v0.0.0-20201201102839-3321f00ed14e
-	k8s.io/code-generator => k8s.io/code-generator v0.0.0-20210329191534-f7420a43c25d
+	k8s.io/code-generator => k8s.io/code-generator v0.19.15
 	k8s.io/component-base => k8s.io/kubernetes/staging/src/k8s.io/component-base v0.0.0-20201201102839-3321f00ed14e
 	k8s.io/component-helpers => k8s.io/kubernetes/staging/src/k8s.io/component-helpers v0.0.0-20201201102839-3321f00ed14e
 	k8s.io/controller-manager => k8s.io/kubernetes/staging/src/k8s.io/controller-manager v0.0.0-20201201102839-3321f00ed14e

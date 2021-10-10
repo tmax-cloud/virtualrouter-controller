@@ -28,10 +28,10 @@ import (
 	// Uncomment the following line to load the gcp plugin (only required to authenticate against GKE clusters).
 	// _ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 
+	clientset "github.com/cho4036/virtualrouter-controller/internal/utils/pkg/generated/clientset/versioned"
+	informers "github.com/cho4036/virtualrouter-controller/internal/utils/pkg/generated/informers/externalversions"
+	"github.com/cho4036/virtualrouter-controller/internal/utils/pkg/signals"
 	c1 "github.com/cho4036/virtualrouter-controller/internal/virtualroutermanager"
-	clientset "github.com/cho4036/virtualrouter-controller/internal/virtualroutermanager/pkg/generated/clientset/versioned"
-	informers "github.com/cho4036/virtualrouter-controller/internal/virtualroutermanager/pkg/generated/informers/externalversions"
-	"github.com/cho4036/virtualrouter-controller/internal/virtualroutermanager/pkg/signals"
 )
 
 var (

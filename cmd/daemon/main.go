@@ -1,11 +1,11 @@
 package main
 
 import (
-	daemon "github.com/cho4036/virtualrouter-controller/internal/daemon"
+	crio "github.com/cho4036/virtualrouter-controller/internal/daemon/crio"
 )
 
 func main() {
 
 	// daemon.Get_CRICTL_CONFIG()
-	daemon.TestCriContainerList()
+	crio.TestCriContainerList()
 }

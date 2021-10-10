@@ -77,7 +77,7 @@ def main(argv):
     go_binary_name = ""
     docker_image_name = ""
     docker_image_tag = ""
-    print(FILE_NAME)
+    # print(FILE_NAME)
     if len(argv) < 2 :
             print(FILE_NAME, "few arguments. Choose at least one option")
             sys.exit(2)
@@ -88,6 +88,10 @@ def main(argv):
         print(FILE_NAME, '--gobuild , --dockerbuild or --dockerpush')
         sys.exit(2)
     for opt, args in opts:
+        if opt in ("-h", "--help"):
+            print(FILE_NAME, '-p daemon or controller, --gobuild  --dockerbuild or --dockerpush')
+            sys.exit(0)
+
         if opt in ("-p", "--program"):
             if not(args == "daemon" or args == "controller"): 
                 print("Wrong Program name. Select either \"daemon\" or \"manager\"")
@@ -107,10 +111,7 @@ def main(argv):
     print(program)
     for opt, args in opts:
         print(opt)
-        if opt in ("-h", "--help"):
-            print(FILE_NAME, '--gobuild , --dockerbuild or --dockerpush')
-            sys.exit(0)
-        elif opt in ("-a","-all"):
+        if opt in ("-a","-all"):
             print("print", pkg_name, go_binary_name)
             out, err = go_build(package=pkg_name, output=go_binary_name)
             if err != "" or out != "":
