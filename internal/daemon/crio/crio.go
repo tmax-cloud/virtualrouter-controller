@@ -174,13 +174,20 @@ func GetContainerIDFromContainerName(containerName string, cfg *CrioConfig) stri
 	l, err := remoteRuntimeService.ListContainers(nil)
 	// fmt.Println(l)
 	// var id string
+
 	for _, container := range l {
-		if container.GetLabels()["io.kubernetes.pod.name"] == containerName {
+		// fmt.Println(container)
+		// fmt.Println(container.Metadata.GetName())
+		if container.GetMetadata().GetName() == containerName {
+			if container.GetState().String() == runtimeapi.ContainerState_CONTAINER_RUNNING.String() {
+				return container.Id
+			}
+
+			// if container.GetLabels()["io.kubernetes.pod.name"] == containerName {
 			// fmt.Println(container.GetPodSandboxId())
 			// return container.GetPodSandboxId()
 			// id = container.GetPodSandboxId()
 			// id = container.Id
-			return container.Id
 		}
 
 		// fmt.Println(container.GetLabels()["io.kubernetes.pod.name"])

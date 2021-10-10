@@ -9,14 +9,22 @@ import (
 )
 
 type NetworkDaemon struct {
-	crioCfg    *internalCrio.CrioConfig
-	netlinkCfg *internalNetlink.Config
+	crioCfg     *internalCrio.CrioConfig
+	netlinkCfg  *internalNetlink.Config
+	runnigState map[string]*virtualrouterSpec
+}
+
+type virtualrouterSpec struct {
+	vlan        int
+	internalIPs []string
+	externalIPs []string
 }
 
 func NewDaemon(crioCfg *internalCrio.CrioConfig, netlinkCfg *internalNetlink.Config) *NetworkDaemon {
 	return &NetworkDaemon{
-		crioCfg:    crioCfg,
-		netlinkCfg: netlinkCfg,
+		crioCfg:     crioCfg,
+		netlinkCfg:  netlinkCfg,
+		runnigState: make(map[string]*virtualrouterSpec),
 	}
 }
 
@@ -41,14 +49,32 @@ func (n *NetworkDaemon) ClearAll() error {
 	return nil
 }
 
+func (n *NetworkDaemon) Sync(containerName string, vlan int, internalIPs []string, externalIPs []string) error {
+	var vlanChanged, internalIPsChanged, externalIPsChanged bool
+
+	if val, exist := n.runnigState[containerName]; exist {
+		if val.vlan != vlan {
+			vlanChanged = true
+		}
+
+	} else {
+		n.runnigState[containerName] = &virtualrouterSpec{
+			vlan:        vlan,
+			internalIPs: internalIPs,
+			externalIPs: externalIPs,
+		}
+	}
+	return nil
+}
+
 func (n *NetworkDaemon) ConnectInterface(containerName string, cidr string, isInternal bool) error {
 	var containerID string
 	var containerPid int
 
 	containerID = internalCrio.GetContainerIDFromContainerName(containerName, n.crioCfg)
 	if containerID == "" {
-		klog.Errorf("There is no container with ContainerName: %s", containerName)
-		return fmt.Errorf("not found")
+		klog.Errorf("There is no running container with ContainerName: %s", containerName)
+		return fmt.Errorf("no running container found")
 	}
 
 	containerPid = internalCrio.GetContainerPid(containerID)

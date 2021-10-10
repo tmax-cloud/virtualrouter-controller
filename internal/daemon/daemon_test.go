@@ -32,9 +32,11 @@ func TestDaemonInitialize(t *testing.T) {
 		fmt.Errorf("Error: %+v", err)
 	}
 
+	// crio.GetContainerIDFromContainerName("", d.)
+
 	fmt.Println("Initailize done")
 
-	if err := d.ConnectInterface("example-virtualrouter-55455dcfc8-d22wh", "10.10.10.1/24", true); err != nil {
+	if err := d.ConnectInterface("virtualrouter1", "10.10.10.1/24", true); err != nil {
 		fmt.Errorf("Error: %+v", err)
 	}
 

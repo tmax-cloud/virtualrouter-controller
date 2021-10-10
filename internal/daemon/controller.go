@@ -21,21 +21,20 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
-	rbac_v1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	appsinformers "k8s.io/client-go/informers/apps/v1"
+	coreinformers "k8s.io/client-go/informers/core/v1"
+
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	appslisters "k8s.io/client-go/listers/apps/v1"
+	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
@@ -80,6 +79,10 @@ type Controller struct {
 	// sampleclientset is a clientset for our own API group
 	sampleclientset clientset.Interface
 
+	networkDaemon *NetworkDaemon
+
+	podLister            corelisters.PodLister
+	podSynced            cache.InformerSynced
 	deploymentsLister    appslisters.DeploymentLister
 	deploymentsSynced    cache.InformerSynced
 	virtualRoutersLister listers.VirtualRouterLister
@@ -96,11 +99,16 @@ type Controller struct {
 	recorder record.EventRecorder
 }
 
+type virtualrouterKey string
+type podKey string
+
 // NewController returns a new sample controller
 func NewController(
 	kubeclientset kubernetes.Interface,
 	sampleclientset clientset.Interface,
+	daemon *NetworkDaemon,
 	deploymentInformer appsinformers.DeploymentInformer,
+	podInformer coreinformers.PodInformer,
 	virtualRouterInformer informers.VirtualRouterInformer) *Controller {
 
 	// Create event broadcaster
@@ -116,8 +124,11 @@ func NewController(
 	controller := &Controller{
 		kubeclientset:        kubeclientset,
 		sampleclientset:      sampleclientset,
+		networkDaemon:        daemon,
 		deploymentsLister:    deploymentInformer.Lister(),
 		deploymentsSynced:    deploymentInformer.Informer().HasSynced,
+		podLister:            podInformer.Lister(),
+		podSynced:            podInformer.Informer().HasSynced,
 		virtualRoutersLister: virtualRouterInformer.Lister(),
 		virtualRoutersSynced: virtualRouterInformer.Informer().HasSynced,
 		workqueue:            workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "VirtualRouters"),
@@ -132,25 +143,20 @@ func NewController(
 			controller.enqueueVirtualRouter(new)
 		},
 	})
-	// Set up an event handler for when Deployment resources change. This
-	// handler will lookup the owner of the given Deployment, and if it is
-	// owned by a VirtualRouter resource will enqueue that VirtualRouter resource for
-	// processing. This way, we don't need to implement custom logic for
-	// handling Deployment resources. More info on this pattern:
-	// https://github.com/kubernetes/community/blob/8cafef897a22026d42f5e5bb3f104febe7e29830/contributors/devel/controllers.md
-	deploymentInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: controller.handleObject,
+
+	podInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: controller.enqueuePod,
 		UpdateFunc: func(old, new interface{}) {
-			newDepl := new.(*appsv1.Deployment)
-			oldDepl := old.(*appsv1.Deployment)
-			if newDepl.ResourceVersion == oldDepl.ResourceVersion {
+			newPod := new.(*corev1.Pod)
+			oldPod := old.(*corev1.Pod)
+			if newPod.ResourceVersion == oldPod.ResourceVersion {
 				// Periodic resync will send update events for all known Deployments.
 				// Two different versions of the same Deployment will always have different RVs.
 				return
 			}
-			controller.handleObject(new)
+			controller.enqueuePod(new)
 		},
-		DeleteFunc: controller.handleObject,
+		DeleteFunc: controller.enqueuePod,
 	})
 
 	return controller
@@ -229,7 +235,8 @@ func (c *Controller) processNextWorkItem() bool {
 		}
 		// Run the syncHandler, passing it the namespace/name string of the
 		// VirtualRouter resource to be synced.
-		if err := c.syncHandler(key); err != nil {
+		// if err := c.syncHandler(key); err != nil {
+		if err := c.syncHandler(obj); err != nil {
 			// Put the item back on the workqueue to handle any transient errors.
 			c.workqueue.AddRateLimited(key)
 			return fmt.Errorf("error syncing '%s': %s, requeuing", key, err.Error())
@@ -252,85 +259,108 @@ func (c *Controller) processNextWorkItem() bool {
 // syncHandler compares the actual state with the desired, and attempts to
 // converge the two. It then updates the Status block of the VirtualRouter resource
 // with the current status of the resource.
-func (c *Controller) syncHandler(key string) error {
-	klog.Info(key)
-	// Convert the namespace/name string into a distinct namespace and name
-	namespace, name, err := cache.SplitMetaNamespaceKey(key)
+func (c *Controller) syncHandler(key interface{}) error {
+	klog.Info(key.(string))
+	namespace, name, err := cache.SplitMetaNamespaceKey(key.(string))
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("invalid resource key: %s", key))
 		return nil
 	}
 
-	// Get the VirtualRouter resource with this namespace/name
-	virtualRouter, err := c.virtualRoutersLister.VirtualRouters(namespace).Get(name)
-	klog.Info(virtualRouter.GetNamespace())
-	if err != nil {
-		// The VirtualRouter resource may no longer exist, in which case we stop
-		// processing.
-		if errors.IsNotFound(err) {
-			utilruntime.HandleError(fmt.Errorf("virtualRouter '%s' in work queue no longer exists", key))
-			return nil
+	switch key.(type) {
+	case virtualrouterKey:
+		virtualRouter, err := c.virtualRoutersLister.VirtualRouters(namespace).Get(name)
+		klog.Info(virtualRouter.GetNamespace())
+		if err != nil {
+			// The VirtualRouter resource may no longer exist, in which case we stop
+			// processing.
+			if errors.IsNotFound(err) {
+				utilruntime.HandleError(fmt.Errorf("virtualRouter '%s' in work queue no longer exists", key))
+				return nil
+			}
+
+			return err
 		}
+		if err := c.networkDaemon.Sync(virtualRouter.Name, int(*virtualRouter.Spec.VlanNumber), virtualRouter.Spec.InternalIPs, virtualRouter.Spec.ExternalIPs); err != nil {
+			klog.ErrorS(err, "Sync failed")
+			return err
+		}
+		// dpName := virtualRouter.ObjectMeta.GetName()
+		// dpNamespace := virtualRouter.ObjectMeta.GetNamespace()
+		// deployment, err := c.deploymentsLister.Deployments(dpNamespace).Get(dpName)
+		// if err != nil {
+		// 	if errors.IsNotFound(err) {
+		// 		klog.Info("NotFound Deploy start")
+		// 	} else{
+		// 		return err
+		// 	}
+		// }
+		// deployment.Spec.Template.Spec.Containers
 
-		return err
+		// pod, err := c.podLister.Pods(namespace).Get()
+		// case podKey:
+
 	}
 
-	deploymentName := virtualRouter.Spec.DeploymentName
-	if deploymentName == "" {
-		// We choose to absorb the error here as the worker would requeue the
-		// resource otherwise. Instead, the next time the resource is updated
-		// the resource will be queued again.
-		utilruntime.HandleError(fmt.Errorf("%s: deployment name must be specified", key))
-		return nil
-	}
+	// Convert the namespace/name string into a distinct namespace and name
 
-	// Get the deployment with the name specified in VirtualRouter.spec
-	deployment, err := c.deploymentsLister.Deployments(virtualRouter.Namespace).Get(deploymentName)
-	// If the resource doesn't exist, we'll create it
-	if errors.IsNotFound(err) {
-		klog.Info("NotFound Deploy start")
-		deployment, err = c.kubeclientset.AppsV1().Deployments(virtualRouter.Namespace).Create(context.TODO(), newDeployment(virtualRouter), metav1.CreateOptions{})
-	}
+	// Get the VirtualRouter resource with this namespace/name
 
-	// If an error occurs during Get/Create, we'll requeue the item so we can
-	// attempt processing again later. This could have been caused by a
-	// temporary network failure, or any other transient reason.
-	if err != nil {
-		return err
-	}
+	// if err != nil {
+	// 	// The VirtualRouter resource may no longer exist, in which case we stop
+	// 	// processing.
+	// 	if errors.IsNotFound(err) {
+	// 		utilruntime.HandleError(fmt.Errorf("virtualRouter '%s' in work queue no longer exists", key))
+	// 		return nil
+	// 	}
 
-	// If the Deployment is not controlled by this VirtualRouter resource, we should log
-	// a warning to the event recorder and return error msg.
-	if !metav1.IsControlledBy(deployment, virtualRouter) {
-		msg := fmt.Sprintf(MessageResourceExists, deployment.Name)
-		c.recorder.Event(virtualRouter, corev1.EventTypeWarning, ErrResourceExists, msg)
-		return fmt.Errorf(msg)
-	}
+	// 	return err
+	// }
 
-	// If this number of the replicas on the VirtualRouter resource is specified, and the
-	// number does not equal the current desired replicas on the Deployment, we
-	// should update the Deployment resource.
-	if virtualRouter.Spec.Replicas != nil && *virtualRouter.Spec.Replicas != *deployment.Spec.Replicas {
-		klog.V(4).Infof("VirtualRouter %s replicas: %d, deployment replicas: %d", name, *virtualRouter.Spec.Replicas, *deployment.Spec.Replicas)
-		deployment, err = c.kubeclientset.AppsV1().Deployments(virtualRouter.Namespace).Update(context.TODO(), newDeployment(virtualRouter), metav1.UpdateOptions{})
-	}
+	// deploymentName := virtualRouter.Spec.DeploymentName
+	// if deploymentName == "" {
+	// 	// We choose to absorb the error here as the worker would requeue the
+	// 	// resource otherwise. Instead, the next time the resource is updated
+	// 	// the resource will be queued again.
+	// 	utilruntime.HandleError(fmt.Errorf("%s: deployment name must be specified", key))
+	// 	return nil
+	// }
+
+	// // Get the deployment with the name specified in VirtualRouter.spec
+	// deployment, err := c.deploymentsLister.Deployments(virtualRouter.Namespace).Get(deploymentName)
+	// // If the resource doesn't exist, we'll create it
+	// if errors.IsNotFound(err) {
+	// 	klog.Info("NotFound Deploy start")
+	// 	deployment, err = c.kubeclientset.AppsV1().Deployments(virtualRouter.Namespace).Create(context.TODO(), newDeployment(virtualRouter), metav1.CreateOptions{})
+	// }
+
+	// // If an error occurs during Get/Create, we'll requeue the item so we can
+	// // attempt processing again later. This could have been caused by a
+	// // temporary network failure, or any other transient reason.
+	// if err != nil {
+	// 	return err
+	// }
 
 	// If an error occurs during Update, we'll requeue the item so we can
 	// attempt processing again later. This could have been caused by a
 	// temporary network failure, or any other transient reason.
-	if err != nil {
-		return err
-	}
+	// if err != nil {
+	// 	return err
+	// }
 
-	// Finally, we update the status block of the VirtualRouter resource to reflect the
-	// current state of the world
-	err = c.updateVirtualRouterStatus(virtualRouter, deployment)
-	if err != nil {
-		return err
-	}
+	// // Finally, we update the status block of the VirtualRouter resource to reflect the
+	// // current state of the world
+	// err = c.updateVirtualRouterStatus(virtualRouter, deployment)
+	// if err != nil {
+	// 	return err
+	// }
 
-	c.recorder.Event(virtualRouter, corev1.EventTypeNormal, SuccessSynced, MessageResourceSynced)
+	// c.recorder.Event(virtualRouter, corev1.EventTypeNormal, SuccessSynced, MessageResourceSynced)
 	return nil
+}
+
+func (c *Controller) eventHandle() {
+
 }
 
 func (c *Controller) updateVirtualRouterStatus(virtualRouter *samplev1alpha1.VirtualRouter, deployment *appsv1.Deployment) error {
@@ -357,7 +387,17 @@ func (c *Controller) enqueueVirtualRouter(obj interface{}) {
 		utilruntime.HandleError(err)
 		return
 	}
-	c.workqueue.Add(key)
+	c.workqueue.Add(virtualrouterKey(key))
+}
+
+func (c *Controller) enqueuePod(obj interface{}) {
+	var key string
+	var err error
+	if key, err = cache.MetaNamespaceKeyFunc(obj); err != nil {
+		utilruntime.HandleError(err)
+		return
+	}
+	c.workqueue.Add(podKey(key))
 }
 
 // handleObject will take any resource implementing metav1.Object and attempt
@@ -398,104 +438,4 @@ func (c *Controller) handleObject(obj interface{}) {
 		c.enqueueVirtualRouter(virtualRouter)
 		return
 	}
-}
-
-// newDeployment creates a new Deployment for a VirtualRouter resource. It also sets
-// the appropriate OwnerReferences on the resource so handleObject can discover
-// the VirtualRouter resource that 'owns' it.
-func newDeployment(virtualRouter *samplev1alpha1.VirtualRouter) *appsv1.Deployment {
-	labels := map[string]string{
-		"app":        "virtualrouter",
-		"controller": virtualRouter.Name,
-	}
-	var uuid = uuid.Must(uuid.NewRandom())
-	return &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      virtualRouter.Spec.DeploymentName,
-			Namespace: virtualRouter.Namespace,
-			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(virtualRouter, samplev1alpha1.SchemeGroupVersion.WithKind("VirtualRouter")),
-			},
-		},
-		Spec: appsv1.DeploymentSpec{
-			Replicas: virtualRouter.Spec.Replicas,
-			Selector: &metav1.LabelSelector{
-				MatchLabels: labels,
-			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: labels,
-				},
-				Spec: corev1.PodSpec{
-					ServiceAccountName: "virtualrouter-sa",
-					Containers: []corev1.Container{
-						{
-							Name:            "virtualrouter-" + uuid.String(),
-							Image:           "10.0.0.4:5000/virtualrouter:0.0.1",
-							ImagePullPolicy: "Always",
-							SecurityContext: &v1.SecurityContext{
-								Capabilities: &v1.Capabilities{
-									Add: []v1.Capability{
-										v1.Capability("NET_RAW"),
-									},
-								},
-								Privileged: func(b bool) *bool {
-									return &b
-								}(true),
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
-func (c *Controller) ensureVirtualRouterSA() error {
-	_, err := c.kubeclientset.CoreV1().ServiceAccounts(virtualRouterNamespace).Get(context.TODO(), serviceAccountName, metav1.GetOptions{})
-	if err != nil {
-		if !errors.IsNotFound(err) {
-			klog.Error(err)
-			return err
-		}
-		_, err = c.kubeclientset.CoreV1().ServiceAccounts(virtualRouterNamespace).Create(context.TODO(), &v1.ServiceAccount{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      serviceAccountName,
-				Namespace: virtualRouterNamespace,
-			},
-		}, metav1.CreateOptions{})
-		if err != nil {
-			klog.Error(err)
-			return err
-		}
-	}
-	return nil
-}
-
-func (c *Controller) ensureVirtualRouterClusterRole() error {
-	_, err := c.kubeclientset.RbacV1().ClusterRoles().Get(context.TODO(), clusterRoleName, metav1.GetOptions{})
-	if err != nil {
-		if !errors.IsNotFound(err) {
-			klog.Error(err)
-			return err
-		}
-
-		_, err = c.kubeclientset.RbacV1().ClusterRoles().Create(context.TODO(), &rbac_v1.ClusterRole{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: clusterRoleName,
-			},
-			Rules: []rbac_v1.PolicyRule{
-				{
-					APIGroups: []string{"virtualrouter" + samplev1alpha1.SchemeGroupVersion.Group},
-					Resources: []string{"*"},
-					Verbs:     []string{"*"},
-				},
-			},
-		}, metav1.CreateOptions{})
-		if err != nil {
-			klog.Error(err)
-			return err
-		}
-	}
-	return nil
 }
