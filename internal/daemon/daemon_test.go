@@ -36,7 +36,7 @@ func TestDaemonInitialize(t *testing.T) {
 
 	fmt.Println("Initailize done")
 
-	if err := d.ConnectInterface("virtualrouter1", "10.10.10.1/24", true); err != nil {
+	if err := d.ConnectInterface("virtualrouter1", true); err != nil {
 		fmt.Errorf("Error: %+v", err)
 	}
 

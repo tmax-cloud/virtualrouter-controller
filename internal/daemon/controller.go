@@ -17,30 +17,22 @@ limitations under the License.
 package daemon
 
 import (
-	"context"
 	"fmt"
 	"time"
 
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
-	appsinformers "k8s.io/client-go/informers/apps/v1"
-	coreinformers "k8s.io/client-go/informers/core/v1"
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	appslisters "k8s.io/client-go/listers/apps/v1"
-	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog/v2"
 
-	samplev1alpha1 "github.com/cho4036/virtualrouter-controller/internal/utils/pkg/apis/networkcontroller/v1"
 	clientset "github.com/cho4036/virtualrouter-controller/internal/utils/pkg/generated/clientset/versioned"
 	samplescheme "github.com/cho4036/virtualrouter-controller/internal/utils/pkg/generated/clientset/versioned/scheme"
 	informers "github.com/cho4036/virtualrouter-controller/internal/utils/pkg/generated/informers/externalversions/networkcontroller/v1"
@@ -49,13 +41,13 @@ import (
 
 const controllerAgentName = "virtual-router"
 
-var virtualRouterNamespace = "virtualrouter"
+// var virtualRouterNamespace = "virtualrouter"
 
-const (
-	serviceAccountName     = "virtualrouter-sa"
-	clusterRoleName        = "virtualrouter-role"
-	clusterRoleBindingName = "virtualrouter-rb"
-)
+// const (
+// 	serviceAccountName     = "virtualrouter-sa"
+// 	clusterRoleName        = "virtualrouter-role"
+// 	clusterRoleBindingName = "virtualrouter-rb"
+// )
 
 const (
 	// SuccessSynced is used as part of the Event 'reason' when a VirtualRouter is synced
@@ -81,10 +73,10 @@ type Controller struct {
 
 	networkDaemon *NetworkDaemon
 
-	podLister            corelisters.PodLister
-	podSynced            cache.InformerSynced
-	deploymentsLister    appslisters.DeploymentLister
-	deploymentsSynced    cache.InformerSynced
+	// podLister            corelisters.PodLister
+	// podSynced            cache.InformerSynced
+	// deploymentsLister    appslisters.DeploymentLister
+	// deploymentsSynced    cache.InformerSynced
 	virtualRoutersLister listers.VirtualRouterLister
 	virtualRoutersSynced cache.InformerSynced
 
@@ -99,16 +91,13 @@ type Controller struct {
 	recorder record.EventRecorder
 }
 
-type virtualrouterKey string
-type podKey string
-
 // NewController returns a new sample controller
 func NewController(
 	kubeclientset kubernetes.Interface,
 	sampleclientset clientset.Interface,
 	daemon *NetworkDaemon,
-	deploymentInformer appsinformers.DeploymentInformer,
-	podInformer coreinformers.PodInformer,
+	// deploymentInformer appsinformers.DeploymentInformer,
+	// podInformer coreinformers.PodInformer,
 	virtualRouterInformer informers.VirtualRouterInformer) *Controller {
 
 	// Create event broadcaster
@@ -122,13 +111,13 @@ func NewController(
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: controllerAgentName})
 
 	controller := &Controller{
-		kubeclientset:        kubeclientset,
-		sampleclientset:      sampleclientset,
-		networkDaemon:        daemon,
-		deploymentsLister:    deploymentInformer.Lister(),
-		deploymentsSynced:    deploymentInformer.Informer().HasSynced,
-		podLister:            podInformer.Lister(),
-		podSynced:            podInformer.Informer().HasSynced,
+		kubeclientset:   kubeclientset,
+		sampleclientset: sampleclientset,
+		networkDaemon:   daemon,
+		// deploymentsLister:    deploymentInformer.Lister(),
+		// deploymentsSynced:    deploymentInformer.Informer().HasSynced,
+		// podLister:            podInformer.Lister(),
+		// podSynced:            podInformer.Informer().HasSynced,
 		virtualRoutersLister: virtualRouterInformer.Lister(),
 		virtualRoutersSynced: virtualRouterInformer.Informer().HasSynced,
 		workqueue:            workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "VirtualRouters"),
@@ -144,20 +133,20 @@ func NewController(
 		},
 	})
 
-	podInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: controller.enqueuePod,
-		UpdateFunc: func(old, new interface{}) {
-			newPod := new.(*corev1.Pod)
-			oldPod := old.(*corev1.Pod)
-			if newPod.ResourceVersion == oldPod.ResourceVersion {
-				// Periodic resync will send update events for all known Deployments.
-				// Two different versions of the same Deployment will always have different RVs.
-				return
-			}
-			controller.enqueuePod(new)
-		},
-		DeleteFunc: controller.enqueuePod,
-	})
+	// podInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+	// 	AddFunc: controller.enqueuePod,
+	// 	UpdateFunc: func(old, new interface{}) {
+	// 		newPod := new.(*corev1.Pod)
+	// 		oldPod := old.(*corev1.Pod)
+	// 		if newPod.ResourceVersion == oldPod.ResourceVersion {
+	// 			// Periodic resync will send update events for all known Deployments.
+	// 			// Two different versions of the same Deployment will always have different RVs.
+	// 			return
+	// 		}
+	// 		controller.enqueuePod(new)
+	// 	},
+	// 	DeleteFunc: controller.enqueuePod,
+	// })
 
 	return controller
 }
@@ -175,7 +164,8 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 
 	// Wait for the caches to be synced before starting workers
 	klog.Info("Waiting for informer caches to sync")
-	if ok := cache.WaitForCacheSync(stopCh, c.deploymentsSynced, c.virtualRoutersSynced); !ok {
+	// if ok := cache.WaitForCacheSync(stopCh, c.deploymentsSynced, c.virtualRoutersSynced); !ok {
+	if ok := cache.WaitForCacheSync(stopCh, c.virtualRoutersSynced); !ok {
 		return fmt.Errorf("failed to wait for caches to sync")
 	}
 
@@ -236,7 +226,7 @@ func (c *Controller) processNextWorkItem() bool {
 		// Run the syncHandler, passing it the namespace/name string of the
 		// VirtualRouter resource to be synced.
 		// if err := c.syncHandler(key); err != nil {
-		if err := c.syncHandler(obj); err != nil {
+		if err := c.syncHandler(key); err != nil {
 			// Put the item back on the workqueue to handle any transient errors.
 			c.workqueue.AddRateLimited(key)
 			return fmt.Errorf("error syncing '%s': %s, requeuing", key, err.Error())
@@ -259,48 +249,44 @@ func (c *Controller) processNextWorkItem() bool {
 // syncHandler compares the actual state with the desired, and attempts to
 // converge the two. It then updates the Status block of the VirtualRouter resource
 // with the current status of the resource.
-func (c *Controller) syncHandler(key interface{}) error {
-	klog.Info(key.(string))
-	namespace, name, err := cache.SplitMetaNamespaceKey(key.(string))
+func (c *Controller) syncHandler(key string) error {
+	klog.Info(key)
+	namespace, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("invalid resource key: %s", key))
 		return nil
 	}
 
-	switch key.(type) {
-	case virtualrouterKey:
-		virtualRouter, err := c.virtualRoutersLister.VirtualRouters(namespace).Get(name)
-		klog.Info(virtualRouter.GetNamespace())
-		if err != nil {
-			// The VirtualRouter resource may no longer exist, in which case we stop
-			// processing.
-			if errors.IsNotFound(err) {
-				utilruntime.HandleError(fmt.Errorf("virtualRouter '%s' in work queue no longer exists", key))
-				return nil
-			}
-
-			return err
+	virtualRouter, err := c.virtualRoutersLister.VirtualRouters(namespace).Get(name)
+	klog.Info(virtualRouter.GetNamespace())
+	if err != nil {
+		// The VirtualRouter resource may no longer exist, in which case we stop
+		// processing.
+		if errors.IsNotFound(err) {
+			utilruntime.HandleError(fmt.Errorf("virtualRouter '%s' in work queue no longer exists", key))
+			return nil
 		}
-		if err := c.networkDaemon.Sync(virtualRouter.Name, int(*virtualRouter.Spec.VlanNumber), virtualRouter.Spec.InternalIPs, virtualRouter.Spec.ExternalIPs); err != nil {
-			klog.ErrorS(err, "Sync failed")
-			return err
-		}
-		// dpName := virtualRouter.ObjectMeta.GetName()
-		// dpNamespace := virtualRouter.ObjectMeta.GetNamespace()
-		// deployment, err := c.deploymentsLister.Deployments(dpNamespace).Get(dpName)
-		// if err != nil {
-		// 	if errors.IsNotFound(err) {
-		// 		klog.Info("NotFound Deploy start")
-		// 	} else{
-		// 		return err
-		// 	}
-		// }
-		// deployment.Spec.Template.Spec.Containers
 
-		// pod, err := c.podLister.Pods(namespace).Get()
-		// case podKey:
-
+		return err
 	}
+	if err := c.networkDaemon.Sync(virtualRouter.Name, int(*virtualRouter.Spec.VlanNumber), virtualRouter.Spec.InternalIPs, virtualRouter.Spec.ExternalIPs); err != nil {
+		klog.ErrorS(err, "Sync failed")
+		return err
+	}
+	// dpName := virtualRouter.ObjectMeta.GetName()
+	// dpNamespace := virtualRouter.ObjectMeta.GetNamespace()
+	// deployment, err := c.deploymentsLister.Deployments(dpNamespace).Get(dpName)
+	// if err != nil {
+	// 	if errors.IsNotFound(err) {
+	// 		klog.Info("NotFound Deploy start")
+	// 	} else{
+	// 		return err
+	// 	}
+	// }
+	// deployment.Spec.Template.Spec.Containers
+
+	// pod, err := c.podLister.Pods(namespace).Get()
+	// case podKey:
 
 	// Convert the namespace/name string into a distinct namespace and name
 
@@ -359,24 +345,6 @@ func (c *Controller) syncHandler(key interface{}) error {
 	return nil
 }
 
-func (c *Controller) eventHandle() {
-
-}
-
-func (c *Controller) updateVirtualRouterStatus(virtualRouter *samplev1alpha1.VirtualRouter, deployment *appsv1.Deployment) error {
-	// NEVER modify objects from the store. It's a read-only, local cache.
-	// You can use DeepCopy() to make a deep copy of original object and modify this copy
-	// Or create a copy manually for better performance
-	virtualRouterCopy := virtualRouter.DeepCopy()
-	virtualRouterCopy.Status.AvailableReplicas = deployment.Status.AvailableReplicas
-	// If the CustomResourceSubresources feature gate is not enabled,
-	// we must use Update instead of UpdateStatus to update the Status block of the VirtualRouter resource.
-	// UpdateStatus will not allow changes to the Spec of the resource,
-	// which is ideal for ensuring nothing other than resource status has been updated.
-	_, err := c.sampleclientset.TmaxV1().VirtualRouters(virtualRouter.Namespace).Update(context.TODO(), virtualRouterCopy, metav1.UpdateOptions{})
-	return err
-}
-
 // enqueueVirtualRouter takes a VirtualRouter resource and converts it into a namespace/name
 // string which is then put onto the work queue. This method should *not* be
 // passed resources of any type other than VirtualRouter.
@@ -387,55 +355,5 @@ func (c *Controller) enqueueVirtualRouter(obj interface{}) {
 		utilruntime.HandleError(err)
 		return
 	}
-	c.workqueue.Add(virtualrouterKey(key))
-}
-
-func (c *Controller) enqueuePod(obj interface{}) {
-	var key string
-	var err error
-	if key, err = cache.MetaNamespaceKeyFunc(obj); err != nil {
-		utilruntime.HandleError(err)
-		return
-	}
-	c.workqueue.Add(podKey(key))
-}
-
-// handleObject will take any resource implementing metav1.Object and attempt
-// to find the VirtualRouter resource that 'owns' it. It does this by looking at the
-// objects metadata.ownerReferences field for an appropriate OwnerReference.
-// It then enqueues that VirtualRouter resource to be processed. If the object does not
-// have an appropriate OwnerReference, it will simply be skipped.
-func (c *Controller) handleObject(obj interface{}) {
-	var object metav1.Object
-	var ok bool
-	if object, ok = obj.(metav1.Object); !ok {
-		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
-		if !ok {
-			utilruntime.HandleError(fmt.Errorf("error decoding object, invalid type"))
-			return
-		}
-		object, ok = tombstone.Obj.(metav1.Object)
-		if !ok {
-			utilruntime.HandleError(fmt.Errorf("error decoding object tombstone, invalid type"))
-			return
-		}
-		klog.V(4).Infof("Recovered deleted object '%s' from tombstone", object.GetName())
-	}
-	klog.V(4).Infof("Processing object: %s", object.GetName())
-	if ownerRef := metav1.GetControllerOf(object); ownerRef != nil {
-		// If this object is not owned by a VirtualRouter, we should not do anything more
-		// with it.
-		if ownerRef.Kind != "VirtualRouter" {
-			return
-		}
-
-		virtualRouter, err := c.virtualRoutersLister.VirtualRouters(object.GetNamespace()).Get(ownerRef.Name)
-		if err != nil {
-			klog.V(4).Infof("ignoring orphaned object '%s' of virtualRouter '%s'", object.GetSelfLink(), ownerRef.Name)
-			return
-		}
-
-		c.enqueueVirtualRouter(virtualRouter)
-		return
-	}
+	c.workqueue.Add(key)
 }

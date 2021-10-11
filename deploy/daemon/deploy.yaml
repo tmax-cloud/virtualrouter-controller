@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: networkdaemon
+  namespace: virtualrouter
+  labels:
+    app: daemon
+spec:
+  selector:
+    matchLabels:
+      name: networkdaemon
+  template:
+    metadata:
+      labels:
+        name: networkdaemon
+    spec:
+      serviceAccount: virtualrouter-controller-sa
+      hostNetwork: true
+      hostPID: true
+      containers:
+      - name: networkdaemon
+        image: 10.0.0.4:5000/daemon:0.0.1
+        imagePullPolicy: Always
+        securityContext:
+          capabilities:
+            add:
+              - NET_RAW
+              - NET_ADMIN
+          privileged: true
+        volumeMounts:
+      #   - name: var
+      #     mountPath: /var
+      #   - name: proc
+      #     mountPath: /proc
+      #   - name: run
+      #     mountPath: /run
+        - name: criosock
+          mountPath: /var/run/crio/crio.sock
+      volumes:
+      - name: criosock
+        hostPath:
+          path: /var/run/crio/crio.sock 
+      # - name: var
+      #   hostPath:
+      #     path: /var
+      # - name: proc
+      #   hostPath:
+      #     path: /proc
+      # - name: run
+      #   hostPath:
+      #     path: /run

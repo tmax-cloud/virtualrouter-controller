@@ -8,7 +8,6 @@ import (
 	"net"
 	"net/url"
 	"os"
-	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
@@ -63,54 +62,37 @@ type Inspect struct {
 	Contain Container
 }
 
-func GetContainerPid(containerID string) int {
-	// fmt.Println(containerName)
-	var i Container
+func GetContainerPid(containerID string, cfg *CrioConfig) int {
+	var request *runtimeapi.ContainerStatusRequest
+	var response *runtimeapi.ContainerStatusResponse
+	var client runtimeapi.RuntimeServiceClient
 
-	var err error
-	fmt.Println(containerID)
-	cmd := exec.Command("crictl", "inspect", containerID, "-o", "json")
-	aa, err := cmd.Output()
-	if err != nil {
-		klog.Error(err)
+	if conn, err := getRuntimeClientConnection(cfg); err != nil {
+		fmt.Println(err)
+	} else {
+		client = runtimeapi.NewRuntimeServiceClient(conn)
 	}
-	json.Unmarshal(aa, &i)
-	fmt.Println(i.Info.Pid)
-	return i.Info.Pid
-	// cmd := exec.Command("crictl", "inspect", containerID, "-o", "yaml")
-	// grepCmd := exec.Command("grep", "pid")
-	// grepCmd.Stdin, err = cmd.StdoutPipe()
-	// if err != nil {
-	// 	klog.Error(err)
-	// }
-	// cmd.Start()
-	// pid, err := grepCmd.Output()
-	// if err != nil {
-	// 	klog.Error(err)
-	// }
-	// json.Unmarshal([]byte(pid), &c)
-	// fmt.Println(c)
 
-	// inspectIn, _ := inspectCmd.StdinPipe()
-	// inspectOut, _ := inspectCmd.StdoutPipe()
-	// inspectCmd.Start()
+	// r, err := client.ContainerStatus(context.Background(), request)
 
-	// var data map[string]interface{}
-	// json.Unmarshal([]byte(cmdOut), &data)
-	// containers := data["containers"]
-	// var container map[string]interface{}
-	// json.Unmarshal([]byte(containers), &container)
+	// fmt.Println(container.Id)
+	request = &runtimeapi.ContainerStatusRequest{
+		ContainerId: containerID,
+		Verbose:     true,
+	}
+	if r, err := client.ContainerStatus(context.Background(), request); err != nil {
+		klog.ErrorS(err, "ContainerStatus Get failed", "containerID", containerID)
+		return 0
+	} else {
+		response = r
+	}
 
-	// for c := range containers {
+	var i Information
+	t := response.GetInfo()
+	bytes := []byte(t["info"])
+	json.Unmarshal(bytes, &i)
 
-	// }
-
-	// fmt.Println(podName)
-	// fmt.Println(data["labels"]["io.kubernetes.pod.name"])
-	// if err := cmd.Run(); err != nil {
-	// 	klog.Error(err)
-	// }
-
+	return i.Pid
 }
 
 func NetDial() {
@@ -145,6 +127,63 @@ func Initialize(cfg *CrioConfig) error {
 	if _, err := remote.NewRemoteRuntimeService(cfg.RuntimeEndpoint, cfg.Timeout); err != nil {
 		klog.ErrorS(err, "RemoteRuntimeService Initialization failed", "RuntimeEndpoint", cfg.RuntimeEndpoint)
 		return err
+	}
+
+	return nil
+}
+
+func RuntimeServiceTestfunc(cfg *CrioConfig) error {
+	var remoteRuntimeService cri.RuntimeService
+	var err error
+
+	Timeout, err = time.ParseDuration("5s")
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	if remoteRuntimeService, err = remote.NewRemoteRuntimeService(cfg.RuntimeEndpoint, Timeout); err != nil {
+		return err
+	}
+
+	l, _ := remoteRuntimeService.ListContainers(nil)
+
+	c, err := getRuntimeClientConnection(cfg)
+	if err != nil {
+		fmt.Println(err)
+	}
+	client := runtimeapi.NewRuntimeServiceClient(c)
+
+	var request *runtimeapi.ContainerStatusRequest
+	// r, err := client.ContainerStatus(context.Background(), request)
+
+	for _, container := range l {
+		// fmt.Println(container.Id)
+		request = &runtimeapi.ContainerStatusRequest{
+			ContainerId: container.Id,
+			Verbose:     true,
+		}
+		r, err := client.ContainerStatus(context.Background(), request)
+		if err != nil {
+			fmt.Println(err)
+			return err
+		}
+
+		var i Information
+		t := r.GetInfo()
+
+		bytes := []byte(t["info"])
+		// fmt.Println(v)
+		// fmt.Println("111")
+		json.Unmarshal(bytes, &i)
+		fmt.Println(i)
+		break
+
+		// fmt.Println(t["pid"])
+		// if container.GetMetadata().GetName() == containerName {
+		// 	if container.GetState().String() == runtimeapi.ContainerState_CONTAINER_RUNNING.String() {
+		// 		return container.Id
+		// 	}
+		// }
 	}
 
 	return nil
@@ -266,35 +305,35 @@ func Get_CRICTL_CONFIG() {
 
 }
 
-func TestCriContainerList() {
-	Get_CRICTL_CONFIG()
-	var err error
-	Timeout, err = time.ParseDuration("5s")
-	if err != nil {
-		fmt.Println(err)
-	}
-	runtimeClient, runtimeConn, err := getRuntimeClient()
-	if err != nil {
-		fmt.Println(err)
-		return
-		// return err
-	}
-	defer closeConnection(runtimeConn)
-	fmt.Println("RuntimeClinet done")
-	imageClient, imageConn, err := getImageClient()
-	if err != nil {
-		fmt.Println(err)
-		return
-		// return err
-	}
-	defer closeConnection(imageConn)
-	fmt.Println("ImageClient done")
-	opts := listOptions{}
-	if err = ListContainers(runtimeClient, imageClient, opts); err != nil {
-		// return errors.Wrap(err, "listing containers")
-		return
-	}
-}
+// func TestCriContainerList() {
+// 	Get_CRICTL_CONFIG()
+// 	var err error
+// 	Timeout, err = time.ParseDuration("5s")
+// 	if err != nil {
+// 		fmt.Println(err)
+// 	}
+// 	runtimeClient, runtimeConn, err := getRuntimeClient()
+// 	if err != nil {
+// 		fmt.Println(err)
+// 		return
+// 		// return err
+// 	}
+// 	defer closeConnection(runtimeConn)
+// 	fmt.Println("RuntimeClinet done")
+// 	imageClient, imageConn, err := getImageClient()
+// 	if err != nil {
+// 		fmt.Println(err)
+// 		return
+// 		// return err
+// 	}
+// 	defer closeConnection(imageConn)
+// 	fmt.Println("ImageClient done")
+// 	opts := listOptions{}
+// 	if err = ListContainers(runtimeClient, imageClient, opts); err != nil {
+// 		// return errors.Wrap(err, "listing containers")
+// 		return
+// 	}
+// }
 
 func closeConnection(conn *grpc.ClientConn) error {
 	if conn == nil {
@@ -404,13 +443,13 @@ func getConnection(endPoints []string) (*grpc.ClientConn, error) {
 	return conn, nil
 }
 
-func getRuntimeClientConnection() (*grpc.ClientConn, error) {
-	if RuntimeEndpointIsSet && RuntimeEndpoint == "" {
+func getRuntimeClientConnection(cfg *CrioConfig) (*grpc.ClientConn, error) {
+	if cfg.RuntimeEndpointIsSet && cfg.RuntimeEndpoint == "" {
 		return nil, fmt.Errorf("--runtime-endpoint is not set")
 	}
 	klog.Info("get runtime connection")
 	// If no EP set then use the default endpoint types
-	if !RuntimeEndpointIsSet {
+	if !cfg.RuntimeEndpointIsSet {
 		klog.Warningf("runtime connect using default endpoints: %v. "+
 			"As the default settings are now deprecated, you should set the "+
 			"endpoint instead.", DEFAULT_RUNTIME_ENDPOINTS[0])
@@ -419,7 +458,7 @@ func getRuntimeClientConnection() (*grpc.ClientConn, error) {
 			"and going to the next in sequence.")
 		return getConnection(DEFAULT_RUNTIME_ENDPOINTS)
 	}
-	return getConnection([]string{RuntimeEndpoint})
+	return getConnection([]string{cfg.RuntimeEndpoint})
 }
 
 func getImageClientConnection() (*grpc.ClientConn, error) {
@@ -444,15 +483,15 @@ func getImageClientConnection() (*grpc.ClientConn, error) {
 	return getConnection([]string{ImageEndpoint})
 }
 
-func getRuntimeClient() (runtimeapi.RuntimeServiceClient, *grpc.ClientConn, error) {
-	// Set up a connection to the server.
-	conn, err := getRuntimeClientConnection()
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "connect")
-	}
-	runtimeClient := runtimeapi.NewRuntimeServiceClient(conn)
-	return runtimeClient, conn, nil
-}
+// func getRuntimeClient() (runtimeapi.RuntimeServiceClient, *grpc.ClientConn, error) {
+// 	// Set up a connection to the server.
+// 	conn, err := getRuntimeClientConnection()
+// 	if err != nil {
+// 		return nil, nil, errors.Wrap(err, "connect")
+// 	}
+// 	runtimeClient := runtimeapi.NewRuntimeServiceClient(conn)
+// 	return runtimeClient, conn, nil
+// }
 
 func getImageClient() (runtimeapi.ImageServiceClient, *grpc.ClientConn, error) {
 	// Set up a connection to the server.

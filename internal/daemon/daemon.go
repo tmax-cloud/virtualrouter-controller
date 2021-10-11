@@ -89,12 +89,14 @@ func (n *NetworkDaemon) AssignIPaddress(containerName string, cidrs []string, is
 		return fmt.Errorf("no running container found")
 	}
 
-	containerPid = internalCrio.GetContainerPid(containerID)
+	containerPid = internalCrio.GetContainerPid(containerID, n.crioCfg)
 	if containerPid <= 0 {
 		klog.Errorf("Wrong Pid(%d) value of Container(%s)", containerPid, containerName)
 		return fmt.Errorf("internal error")
 	}
 
+	klog.Info(containerPid)
+	klog.Info(containerID)
 	if err := internalNetlink.SetIPaddress2Container(containerPid, containerID[:7], cidrs, isInternal, n.netlinkCfg); err != nil {
 		klog.ErrorS(err, "Set Interface to Container failed", "ContainerName", containerName, "ContainerID", containerID)
 		return err
@@ -113,7 +115,7 @@ func (n *NetworkDaemon) ConnectInterface(containerName string, isInternal bool) 
 		return fmt.Errorf("no running container found")
 	}
 
-	containerPid = internalCrio.GetContainerPid(containerID)
+	containerPid = internalCrio.GetContainerPid(containerID, n.crioCfg)
 	if containerPid <= 0 {
 		klog.Errorf("Wrong Pid(%d) value of Container(%s)", containerPid, containerName)
 		return fmt.Errorf("internal error")
@@ -125,3 +127,7 @@ func (n *NetworkDaemon) ConnectInterface(containerName string, isInternal bool) 
 	}
 	return nil
 }
+
+// func (n *NetworkDaemon) ClearInterface(containerName string) error {
+
+// }

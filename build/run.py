@@ -47,8 +47,11 @@ def docker_clean(name, tag, registry):
         print(err)
         return 
 
-def docker_build(name, tag, registry):
-    os.chdir("../build/virtualroutermanager")
+def docker_build(program, name, tag, registry):
+    if program == "controller":
+        os.chdir("../build/virtualroutermanager")
+    else :
+        os.chdir("../build/daemon")
     docker_clean(name,tag,registry)
     # checkout = docker_image_check(name,tag,registry)
     # print("checkout Type: " + type(checkout))
@@ -119,7 +122,7 @@ def main(argv):
                 sys.exit(1)
             print("Go build done")
 
-            out, err = docker_build(name=docker_image_name,tag=docker_image_tag, registry=DOCKER_REGISTRY)
+            out, err = docker_build(program=program ,name=docker_image_name,tag=docker_image_tag, registry=DOCKER_REGISTRY)
             if err != "":
                 print("Error: " + err)
                 sys.exit(1)
