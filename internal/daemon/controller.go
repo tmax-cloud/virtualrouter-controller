@@ -131,6 +131,7 @@ func NewController(
 		UpdateFunc: func(old, new interface{}) {
 			controller.enqueueVirtualRouter(new)
 		},
+		DeleteFunc: controller.enqueueVirtualRouter,
 	})
 
 	// podInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -258,18 +259,18 @@ func (c *Controller) syncHandler(key string) error {
 	}
 
 	virtualRouter, err := c.virtualRoutersLister.VirtualRouters(namespace).Get(name)
-	klog.Info(virtualRouter.GetNamespace())
 	if err != nil {
 		// The VirtualRouter resource may no longer exist, in which case we stop
 		// processing.
 		if errors.IsNotFound(err) {
+			c.networkDaemon.ClearContainer(name)
 			utilruntime.HandleError(fmt.Errorf("virtualRouter '%s' in work queue no longer exists", key))
 			return nil
 		}
 
 		return err
 	}
-	if err := c.networkDaemon.Sync(virtualRouter.Name, int(*virtualRouter.Spec.VlanNumber), virtualRouter.Spec.InternalIPs, virtualRouter.Spec.ExternalIPs); err != nil {
+	if err := c.networkDaemon.Sync(name, virtualRouter.Spec.VlanNumber, virtualRouter.Spec.InternalIPs, virtualRouter.Spec.ExternalIPs); err != nil {
 		klog.ErrorS(err, "Sync failed")
 		return err
 	}

@@ -25,7 +25,7 @@ func TestDaemon(t *testing.T) {
 		fmt.Println(err)
 	}
 
-	if _, err := internalNetlink.SetVethInterface(rootNetlinkHandle, "testVeth"); err != nil {
+	if _, _, err := internalNetlink.SetVethInterface(rootNetlinkHandle, "testVeth"); err != nil {
 		fmt.Println(err)
 	}
 

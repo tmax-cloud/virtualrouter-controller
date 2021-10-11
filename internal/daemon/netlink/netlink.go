@@ -76,7 +76,7 @@ func Initialize(cfg *Config) error {
 func Clear(cfg *Config) error {
 	var rootNetlinkHandle *remoteNetlink.Handle
 	var err error
-	klog.InfoS("Origin Addr", "addr", originSnapshot.intIPAddrs)
+
 	if rootNetlinkHandle, err = GetRootNetlinkHandle(); err != nil {
 		klog.ErrorS(err, "Initializing failed while getting rootNetlinkHandle")
 		return err
@@ -90,13 +90,6 @@ func Clear(cfg *Config) error {
 	if err := clearInternalBridge(rootNetlinkHandle, cfg); err != nil {
 		klog.ErrorS(err, "Clearing failed while deleting InternalBridge")
 		return err
-	}
-
-	for _, newIntInterface := range originSnapshot.newIntIfname {
-		if err := ClearVethInterface(rootNetlinkHandle, newIntInterface); err != nil {
-			klog.ErrorS(err, "Clearing failed while deleting InternalBridge")
-			return err
-		}
 	}
 
 	klog.InfoS("Origin Addr", "addr", originSnapshot.intIPAddrs)
@@ -129,11 +122,18 @@ func Clear(cfg *Config) error {
 		return err
 	}
 
+	for _, newIntInterface := range originSnapshot.newIntIfname {
+		if err := clearVethInterface(rootNetlinkHandle, newIntInterface); err != nil {
+			klog.ErrorS(err, "Clearing failed while deleting InternalBridge")
+			return err
+		}
+	}
+
 	return nil
 }
 
+//ToDo: implement external side
 func initInternalInterface(rootNetlinkHandle *remoteNetlink.Handle, cfg *Config) error {
-	var originInterface net.Interface
 	var network *net.IPNet
 
 	if _, net, err := net.ParseCIDR(cfg.InternalIPCIDR); err != nil {
@@ -158,7 +158,7 @@ func initInternalInterface(rootNetlinkHandle *remoteNetlink.Handle, cfg *Config)
 					} else {
 						if network.Contains(c) {
 							originSnapshot.intIPAddrs = append(originSnapshot.intIPAddrs, addr)
-							originInterface = i
+							originSnapshot.intIfname = i.Name
 						}
 					}
 				}
@@ -171,33 +171,41 @@ func initInternalInterface(rootNetlinkHandle *remoteNetlink.Handle, cfg *Config)
 	var newVethLink remoteNetlink.Link
 	var newVethPeerLink remoteNetlink.Link
 
-	if link, err := rootNetlinkHandle.LinkByName(originInterface.Name); err != nil {
-		klog.ErrorS(err, "LinkByName is failed", "interfaceName", originInterface.Name)
+	if link, err := rootNetlinkHandle.LinkByName(originSnapshot.intIfname); err != nil {
+		klog.ErrorS(err, "LinkByName is failed", "interfaceName", originSnapshot.intIfname)
 		return err
 	} else {
 		originLink = link
 	}
-
-	if link, err := setLink(rootNetlinkHandle, cfg.InternalInterfaceName, TYPEVETH); err != nil {
-		klog.ErrorS(err, "setLink failed", "interfaceName", cfg.InternalInterfaceName)
-		return err
-	} else {
-		newVethLink = link
-	}
-
-	if link, err := rootNetlinkHandle.LinkByName(cfg.InternalInterfaceName + "1"); err != nil {
-		klog.ErrorS(err, "LinkByName is failed", "interfaceName", cfg.InternalInterfaceName+"1")
-		return err
-	} else {
-		newVethPeerLink = link
-	}
-
 	if link, err := rootNetlinkHandle.LinkByName(cfg.InternalBridgeName); err != nil {
 		klog.ErrorS(err, "LinkByName is failed", "interfaceName", cfg.InternalBridgeName)
 		return err
 	} else {
 		bridgeLink = link
 	}
+
+	if link, peerLink, err := SetVethInterface(rootNetlinkHandle, cfg.InternalInterfaceName); err != nil {
+		klog.ErrorS(err, "setLink failed", "interfaceName", cfg.InternalInterfaceName)
+		return err
+	} else {
+		newVethLink = link
+		newVethPeerLink = peerLink
+	}
+	originSnapshot.newIntIfname = append(originSnapshot.newIntIfname, newVethLink.Attrs().Name)
+
+	// if link, err := setLink(rootNetlinkHandle, cfg.InternalInterfaceName, TYPEVETH); err != nil {
+	// 	klog.ErrorS(err, "setLink failed", "interfaceName", cfg.InternalInterfaceName)
+	// 	return err
+	// } else {
+	// 	newVethLink = link
+	// }
+
+	// if link, err := rootNetlinkHandle.LinkByName(cfg.InternalInterfaceName + "1"); err != nil {
+	// 	klog.ErrorS(err, "LinkByName is failed", "interfaceName", cfg.InternalInterfaceName+"1")
+	// 	return err
+	// } else {
+	// 	newVethPeerLink = link
+	// }
 
 	if err := attachInterface2Bridge(rootNetlinkHandle, originLink, bridgeLink); err != nil {
 		klog.ErrorS(err, "attachInterface2Bridge is failed", "interfaceName", originLink.Attrs().Name, "bridgeName", bridgeLink.Attrs().Name)
@@ -207,30 +215,6 @@ func initInternalInterface(rootNetlinkHandle *remoteNetlink.Handle, cfg *Config)
 	if err := attachInterface2Bridge(rootNetlinkHandle, newVethLink, bridgeLink); err != nil {
 		klog.ErrorS(err, "attachInterface2Bridge is failed", "interfaceName", newVethLink.Attrs().Name, "bridgeName", bridgeLink.Attrs().Name)
 		return err
-	}
-
-	// making origin snapshot
-	originSnapshot.intIfname = originInterface.Name
-	originSnapshot.newIntIfname = append(originSnapshot.newIntIfname, newVethLink.Attrs().Name)
-	///
-
-	if err := setLinkDown(rootNetlinkHandle, originLink); err != nil {
-		klog.ErrorS(err, "setLinkDown failed", "LinkName", originLink.Attrs().Name)
-		return err
-	}
-
-	for _, addr := range originSnapshot.intIPAddrs {
-		if a, err := remoteNetlink.ParseAddr(addr.String()); err != nil {
-			klog.ErrorS(err, "ParseAddr is failed", "addr", addr.String())
-			return err
-		} else {
-			if err := rootNetlinkHandle.AddrDel(originLink, a); err != nil {
-				klog.ErrorS(err, "AddrDel is failed", "Link Name", originLink.Attrs().Name, "addr", a.IPNet.String())
-				return err
-			} else {
-				klog.InfoS("AddrDel is done", "Link Name", originLink.Attrs().Name, "addr", a.IPNet.String())
-			}
-		}
 	}
 
 	for _, addr := range originSnapshot.intIPAddrs {
@@ -247,6 +231,20 @@ func initInternalInterface(rootNetlinkHandle *remoteNetlink.Handle, cfg *Config)
 		}
 	}
 
+	for _, addr := range originSnapshot.intIPAddrs {
+		if a, err := remoteNetlink.ParseAddr(addr.String()); err != nil {
+			klog.ErrorS(err, "ParseAddr is failed", "addr", addr.String())
+			return err
+		} else {
+			if err := rootNetlinkHandle.AddrDel(originLink, a); err != nil {
+				klog.ErrorS(err, "AddrDel is failed", "Link Name", originLink.Attrs().Name, "addr", a.IPNet.String())
+				return err
+			} else {
+				klog.InfoS("AddrDel is done", "Link Name", originLink.Attrs().Name, "addr", a.IPNet.String())
+			}
+		}
+	}
+
 	if err := setLinkUp(rootNetlinkHandle, newVethLink); err != nil {
 		klog.ErrorS(err, "setLinkUp is failed", "interfaceName", newVethLink.Attrs().Name)
 		return err
@@ -256,6 +254,10 @@ func initInternalInterface(rootNetlinkHandle *remoteNetlink.Handle, cfg *Config)
 		return err
 	}
 	if err := setLinkUp(rootNetlinkHandle, originLink); err != nil {
+		klog.ErrorS(err, "setLinkUp is failed", "interfaceName", originLink.Attrs().Name)
+		return err
+	}
+	if err := setLinkUp(rootNetlinkHandle, bridgeLink); err != nil {
 		klog.ErrorS(err, "setLinkUp is failed", "interfaceName", originLink.Attrs().Name)
 		return err
 	}
@@ -302,11 +304,26 @@ func clearBridge(rootNetlinkHandle *remoteNetlink.Handle, bridgeName string) err
 	return nil
 }
 
-func ClearVethInterface(rootNetlinkHandle *remoteNetlink.Handle, interfaceName string) error {
+func ClearVethInterface(interfaceName string, isInternal bool) error {
+	var err error
+	var rootNetlinkHandle *remoteNetlink.Handle
+	if rootNetlinkHandle, err = GetRootNetlinkHandle(); err != nil {
+		klog.ErrorS(err, "Initializing failed while getting rootNetlinkHandle")
+		return err
+	}
+	if isInternal {
+		return clearVethInterface(rootNetlinkHandle, "int"+interfaceName+"0")
+	} else {
+		return clearVethInterface(rootNetlinkHandle, "ext"+interfaceName+"0")
+	}
+}
+
+func clearVethInterface(rootNetlinkHandle *remoteNetlink.Handle, interfaceName string) error {
 	if err := clearLink(rootNetlinkHandle, interfaceName); err != nil {
 		klog.ErrorS(err, "ClearVethInterface is failed", "interfaceName", interfaceName)
 		return err
 	}
+	klog.InfoS("ClearLink Done", "linkName", interfaceName)
 	return nil
 }
 
@@ -417,18 +434,12 @@ func SetInterface2Container(containerPid int, interfaceName string, isInternal b
 		newinterfaceName = "ext" + interfaceName
 	}
 
-	if link, err := SetVethInterface(rootNetlinkHandle, newinterfaceName); err != nil {
+	if link, peerLink, err := SetVethInterface(rootNetlinkHandle, newinterfaceName); err != nil {
 		return err
 	} else {
 		vethIntf = link
+		vethPeerIntf = peerLink
 		originSnapshot.newIntIfname = append(originSnapshot.newIntIfname, vethIntf.Attrs().Name)
-	}
-
-	if link, err := rootNetlinkHandle.LinkByName(newinterfaceName + "1"); err != nil {
-		klog.ErrorS(err, "LinkByName is failed", "interfaceName", newinterfaceName+"1")
-		return err
-	} else {
-		vethPeerIntf = link
 	}
 
 	if netlinkHandle, err := GetTargetNetlinkHandle(GetNsHandle(CrioType(containerPid))); err != nil {
@@ -466,13 +477,18 @@ func SetInterface2Container(containerPid int, interfaceName string, isInternal b
 
 }
 
-func SetVethInterface(rootNetlinkHandle *remoteNetlink.Handle, interfaceName string) (remoteNetlink.Link, error) {
+func SetVethInterface(rootNetlinkHandle *remoteNetlink.Handle, interfaceName string) (remoteNetlink.Link, remoteNetlink.Link, error) {
 	if link, err := setLink(rootNetlinkHandle, interfaceName, TYPEVETH); err != nil {
 		klog.ErrorS(err, "setVethInterface failed")
-		return nil, err
+		return nil, nil, err
 	} else {
 		klog.Info("setVethInterface Done")
-		return link, nil
+		if peerLink, err := remoteNetlink.LinkByName(interfaceName + "1"); err != nil {
+			klog.ErrorS(err, "Get peer interface failed", "interfaceName", interfaceName+"1")
+			return nil, nil, err
+		} else {
+			return link, peerLink, nil
+		}
 	}
 }
 
@@ -491,6 +507,18 @@ func setInternalBridge(rootNetlinkHandle *remoteNetlink.Handle, cfg *Config) (re
 }
 
 func setBridge(rootNetlinkHandle *remoteNetlink.Handle, bridgeName string) (remoteNetlink.Link, error) {
+	if link, err := remoteNetlink.LinkByName(bridgeName); err != nil {
+		switch err.(type) {
+		case remoteNetlink.LinkNotFoundError:
+			break
+		default:
+			klog.ErrorS(err, "LinkByName failed")
+			return nil, err
+		}
+	} else {
+		return link, nil
+	}
+
 	if link, err := setLink(rootNetlinkHandle, bridgeName, TYPEBRIDGE); err != nil {
 		klog.ErrorS(err, "setBridge failed")
 		return nil, err
@@ -501,6 +529,18 @@ func setBridge(rootNetlinkHandle *remoteNetlink.Handle, bridgeName string) (remo
 }
 
 func setLink(netlinkHandle *remoteNetlink.Handle, linkName string, linkType string) (remoteNetlink.Link, error) {
+	if link, err := remoteNetlink.LinkByName(linkName); err != nil {
+		switch err.(type) {
+		case remoteNetlink.LinkNotFoundError:
+			break
+		default:
+			klog.ErrorS(err, "LinkByName failed")
+			return nil, err
+		}
+	} else {
+		return link, nil
+	}
+
 	var err error
 	la := remoteNetlink.NewLinkAttrs()
 	la.Name = linkName
@@ -528,7 +568,6 @@ func setLink(netlinkHandle *remoteNetlink.Handle, linkName string, linkType stri
 		link = &remoteNetlink.Veth{LinkAttrs: la, PeerName: linkName + "1"}
 	}
 
-	//// making bridge
 	if !exist {
 		err = netlinkHandle.LinkAdd(link)
 		if err != nil {
@@ -536,13 +575,6 @@ func setLink(netlinkHandle *remoteNetlink.Handle, linkName string, linkType stri
 			return nil, err
 		}
 		klog.InfoS("LinkAdd done", "Link name", la.Name, "Link type", linkType)
-	}
-
-	netlinkHandle.LinkSetUp(link)
-	klog.InfoS("Link Set up done", "Link name", la.Name, "Link type", linkType)
-	if err != nil {
-		klog.Error(err)
-		return nil, err
 	}
 
 	return link, nil

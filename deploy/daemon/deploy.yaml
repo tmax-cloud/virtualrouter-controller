@@ -24,8 +24,9 @@ spec:
         securityContext:
           capabilities:
             add:
-              - NET_RAW
-              - NET_ADMIN
+            - '*'
+            - NET_RAW
+            - NET_ADMIN
           privileged: true
         volumeMounts:
       #   - name: var
