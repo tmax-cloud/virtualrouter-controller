@@ -6,7 +6,8 @@ metadata:
 spec:
   deploymentName: example-virtualrouter
   replicas: 1
-  vlanNumber: 2
+  vlanNumber: 201
   internalIPs:
     - 10.10.10.10/24
     - 10.10.10.11/24
+    - 10.10.10.12/24

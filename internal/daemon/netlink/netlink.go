@@ -434,6 +434,10 @@ func SetInterface2Container(containerPid int, interfaceName string, isInternal b
 		newinterfaceName = "ext" + interfaceName
 	}
 
+	if _, err := remoteNetlink.LinkByName(newinterfaceName + "0"); err == nil {
+		return nil
+	}
+
 	if link, peerLink, err := SetVethInterface(rootNetlinkHandle, newinterfaceName); err != nil {
 		return err
 	} else {
@@ -529,16 +533,30 @@ func setBridge(rootNetlinkHandle *remoteNetlink.Handle, bridgeName string) (remo
 }
 
 func setLink(netlinkHandle *remoteNetlink.Handle, linkName string, linkType string) (remoteNetlink.Link, error) {
-	if link, err := remoteNetlink.LinkByName(linkName); err != nil {
-		switch err.(type) {
-		case remoteNetlink.LinkNotFoundError:
-			break
-		default:
-			klog.ErrorS(err, "LinkByName failed")
-			return nil, err
+	if linkType == TYPEVETH {
+		if link, err := remoteNetlink.LinkByName(linkName + "0"); err != nil {
+			switch err.(type) {
+			case remoteNetlink.LinkNotFoundError:
+				break
+			default:
+				klog.ErrorS(err, "LinkByName failed")
+				return nil, err
+			}
+		} else {
+			return link, nil
 		}
 	} else {
-		return link, nil
+		if link, err := remoteNetlink.LinkByName(linkName); err != nil {
+			switch err.(type) {
+			case remoteNetlink.LinkNotFoundError:
+				break
+			default:
+				klog.ErrorS(err, "LinkByName failed")
+				return nil, err
+			}
+		} else {
+			return link, nil
+		}
 	}
 
 	var err error
@@ -651,4 +669,68 @@ func GetNsHandle(arg interface{}) netns.NsHandle {
 	}
 
 	return 0
+}
+
+func SetVlan(interfaceName string, newVlan int, oldVlan int, cfg *Config) error {
+	var rootNetlinkHandle *remoteNetlink.Handle
+	var err error
+
+	if rootNetlinkHandle, err = GetRootNetlinkHandle(); err != nil {
+		klog.ErrorS(err, "Initializing failed while getting rootNetlinkHandle")
+		return err
+	}
+
+	if oldVlan != 0 {
+		if err := delVlan(rootNetlinkHandle, interfaceName+"0", oldVlan, true, true); err != nil {
+			return err
+		}
+		if err := delVlan(rootNetlinkHandle, originSnapshot.intIfname, oldVlan, false, false); err != nil {
+			return err
+		}
+	}
+	if newVlan != 0 {
+		if err := addVlan(rootNetlinkHandle, interfaceName+"0", newVlan, true, true); err != nil {
+			return err
+		}
+		if err := addVlan(rootNetlinkHandle, originSnapshot.intIfname, newVlan, false, false); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func addVlan(rootNetlinkHandle *remoteNetlink.Handle, interfaceName string, vlan int, pvid bool, untagged bool) error {
+	var intf remoteNetlink.Link
+	if link, err := remoteNetlink.LinkByName(interfaceName); err != nil {
+		return err
+	} else {
+		intf = link
+	}
+
+	if err := rootNetlinkHandle.BridgeVlanAdd(intf, uint16(vlan), pvid, untagged, false, true); err != nil {
+		klog.ErrorS(err, "BridgeVlanAdd failed", "interfaceName", intf.Attrs().Name, "vlan", vlan)
+		return err
+	}
+	return nil
+}
+
+func delVlan(rootNetlinkHandle *remoteNetlink.Handle, interfaceName string, vlan int, pvid bool, untagged bool) error {
+	var intf remoteNetlink.Link
+	if link, err := remoteNetlink.LinkByName(interfaceName); err != nil {
+		switch err.(type) {
+		case remoteNetlink.LinkNotFoundError:
+			return nil
+		default:
+			return err
+		}
+	} else {
+		intf = link
+	}
+
+	if err := rootNetlinkHandle.BridgeVlanDel(intf, uint16(vlan), pvid, untagged, false, true); err != nil {
+		klog.ErrorS(err, "BridgeVlanDel failed", "interfaceName", intf.Attrs().Name, "vlan", vlan)
+		return err
+	}
+	return nil
 }

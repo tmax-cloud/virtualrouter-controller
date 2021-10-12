@@ -2,6 +2,7 @@ package daemon
 
 import (
 	"fmt"
+	"sort"
 
 	internalCrio "github.com/cho4036/virtualrouter-controller/internal/daemon/crio"
 	internalNetlink "github.com/cho4036/virtualrouter-controller/internal/daemon/netlink"
@@ -12,12 +13,13 @@ type NetworkDaemon struct {
 	crioCfg     *internalCrio.CrioConfig
 	netlinkCfg  *internalNetlink.Config
 	runnigState map[string]*virtualrouterSpec
+	vlanUse     map[int][]string
 }
 
 type virtualrouterSpec struct {
 	vlan        int
-	internalIPs *[]string
-	externalIPs *[]string
+	internalIPs []string
+	externalIPs []string
 }
 
 func NewDaemon(crioCfg *internalCrio.CrioConfig, netlinkCfg *internalNetlink.Config) *NetworkDaemon {
@@ -25,6 +27,7 @@ func NewDaemon(crioCfg *internalCrio.CrioConfig, netlinkCfg *internalNetlink.Con
 		crioCfg:     crioCfg,
 		netlinkCfg:  netlinkCfg,
 		runnigState: make(map[string]*virtualrouterSpec),
+		vlanUse:     make(map[int][]string),
 	}
 }
 
@@ -54,21 +57,26 @@ func (n *NetworkDaemon) ClearContainer(containerName string) error {
 	if _, exist := n.runnigState[containerName]; !exist {
 		return nil
 	}
+	if n.runnigState[containerName].vlan != 0 {
+		if err := n.AssignVlan(containerName, 0, n.runnigState[containerName].vlan); err != nil {
+			return err
+		}
+	}
 
-	// containerID := internalCrio.GetContainerIDFromContainerName(containerName, n.crioCfg)
-	// if containerID == "" {
-	// 	klog.Errorf("There is no running container with ContainerName: %s", containerName)
-	// 	return fmt.Errorf("no running container found")
-	// }
+	containerID := internalCrio.GetContainerIDFromContainerName(containerName, n.crioCfg)
+	if containerID == "" {
+		klog.Errorf("There is no running container with ContainerName: %s", containerName)
+		return fmt.Errorf("no running container found")
+	}
 
-	// if err := internalNetlink.ClearVethInterface(containerID[:7], true); err != nil {
-	// 	klog.ErrorS(err, "ClearVethInterface failed", "containerID", containerID[:7], "isInternal", true)
-	// 	return err
-	// }
-	// if err := internalNetlink.ClearVethInterface(containerID[:7], false); err != nil {
-	// 	klog.ErrorS(err, "ClearVethInterface failed", "containerID", containerID[:7], "isInternal", false)
-	// 	return err
-	// }
+	if err := internalNetlink.ClearVethInterface(containerID[:7], true); err != nil {
+		klog.ErrorS(err, "ClearVethInterface failed", "containerID", containerID[:7], "isInternal", true)
+		return err
+	}
+	if err := internalNetlink.ClearVethInterface(containerID[:7], false); err != nil {
+		klog.ErrorS(err, "ClearVethInterface failed", "containerID", containerID[:7], "isInternal", false)
+		return err
+	}
 
 	delete(n.runnigState, containerName)
 
@@ -76,33 +84,101 @@ func (n *NetworkDaemon) ClearContainer(containerName string) error {
 	return nil
 }
 
-func (n *NetworkDaemon) Sync(containerName string, vlan *int32, internalIPs []string, externalIPs []string) error {
-	// var vlanChanged, internalIPsChanged, externalIPsChanged bool
-
-	// if val, exist := n.runnigState[containerName]; exist {
-	// 	if val.vlan != vlan {
-	// 		vlanChanged = true
-	// 	}
-
-	// } else {
-	// 	n.runnigState[containerName] = &virtualrouterSpec{
-	// 		vlan:        vlan,
-	// 		internalIPs: internalIPs,
-	// 		externalIPs: externalIPs,
-	// 	}
-	// }
-	if _, exist := n.runnigState[containerName]; !exist {
-		n.runnigState[containerName] = &virtualrouterSpec{}
+func (n *NetworkDaemon) Sync(containerName string, originVlan *int32, internalIPs []string, externalIPs []string) error {
+	var vlanChanged, internalIPsChanged, externalIPsChanged bool
+	var vlan int
+	if originVlan == nil {
+		vlan = 0
+	} else {
+		vlan = int(*originVlan)
 	}
 
-	n.ConnectInterface(containerName, true)
-	n.AssignIPaddress(containerName, internalIPs, true)
+	if val, exist := n.runnigState[containerName]; !exist {
+		n.runnigState[containerName] = &virtualrouterSpec{}
+		if vlan != 0 {
+			n.vlanUse[vlan] = append(n.vlanUse[vlan], containerName)
+			// n.runnigState[containerName].vlan = int(*vlan)
+			vlanChanged = true
+		}
+		internalIPsChanged = true
+		externalIPsChanged = true
+	} else {
+		if vlan != n.runnigState[containerName].vlan {
+			vlanChanged = true
+		}
+		internalIPsChanged = isIPsChange(val.internalIPs, internalIPs)
+		externalIPsChanged = isIPsChange(val.externalIPs, externalIPs)
+	}
 
-	n.ConnectInterface(containerName, false)
-	n.AssignIPaddress(containerName, externalIPs, false)
+	// No Change
+	if !vlanChanged && !internalIPsChanged && !externalIPsChanged {
+		return nil
+	}
+
+	// Change
+	if err := n.ConnectInterface(containerName, true); err != nil {
+		klog.ErrorS(err, "Interface to Container faild", "containerName", containerName)
+		return err
+	}
+	if err := n.ConnectInterface(containerName, false); err != nil {
+		klog.ErrorS(err, "Interface to Container faild", "containerName", containerName)
+		return err
+	}
+
+	if vlanChanged {
+		if err := n.AssignVlan(containerName, vlan, n.runnigState[containerName].vlan); err != nil {
+			klog.ErrorS(err, "UnssignVlan failed", "containerName", containerName, "vlan", vlan)
+			return err
+		}
+		n.runnigState[containerName].vlan = vlan
+	}
+
+	if internalIPsChanged {
+		if err := n.AssignIPaddress(containerName, internalIPs, true); err != nil {
+			klog.ErrorS(err, "AssignIPAddress failed", "containerName", containerName, "IPs", internalIPs)
+			return err
+		}
+		n.runnigState[containerName].internalIPs = internalIPs
+	}
+
+	if externalIPsChanged {
+		if err := n.AssignIPaddress(containerName, externalIPs, false); err != nil {
+			klog.ErrorS(err, "AssignVlan failed", "containerName", containerName, "IPs", externalIPs)
+			return err
+		}
+		n.runnigState[containerName].externalIPs = externalIPs
+	}
 
 	return nil
 }
+
+func (n *NetworkDaemon) AssignVlan(containerName string, newVlan int, oldVlan int) error {
+	containerID := internalCrio.GetContainerIDFromContainerName(containerName, n.crioCfg)
+	if containerID == "" {
+		klog.Errorf("There is no running container with ContainerName: %s", containerName)
+		return fmt.Errorf("no running container found")
+	}
+
+	if err := internalNetlink.SetVlan("int"+containerID[:7], newVlan, oldVlan, n.netlinkCfg); err != nil {
+		klog.ErrorS(err, "SetVlan failed", "vlan", newVlan)
+		return err
+	}
+	return nil
+}
+
+// func (n *NetworkDaemon) UnassignVlan(containerName string, vlan int) error {
+// 	containerID := internalCrio.GetContainerIDFromContainerName(containerName, n.crioCfg)
+// 	if containerID == "" {
+// 		klog.Errorf("There is no running container with ContainerName: %s", containerName)
+// 		return fmt.Errorf("no running container found")
+// 	}
+
+// 	if err := internalNetlink.DeleteVlan(containerID[:7], vlan, n.netlinkCfg); err != nil {
+// 		klog.ErrorS(err, "DeleteVlan failed", "vlan", vlan)
+// 		return err
+// 	}
+// 	return nil
+// }
 
 func (n *NetworkDaemon) AssignIPaddress(containerName string, cidrs []string, isInternal bool) error {
 	var containerID string
@@ -120,8 +196,6 @@ func (n *NetworkDaemon) AssignIPaddress(containerName string, cidrs []string, is
 		return fmt.Errorf("internal error")
 	}
 
-	klog.Info(containerPid)
-	klog.Info(containerID)
 	if err := internalNetlink.SetIPaddress2Container(containerPid, containerID[:7], cidrs, isInternal, n.netlinkCfg); err != nil {
 		klog.ErrorS(err, "Set Interface to Container failed", "ContainerName", containerName, "ContainerID", containerID)
 		return err
@@ -152,6 +226,22 @@ func (n *NetworkDaemon) ConnectInterface(containerName string, isInternal bool) 
 	}
 
 	return nil
+}
+
+func isIPsChange(a []string, b []string) bool {
+	if len(a) != len(b) {
+		return true
+	}
+	sort.Strings(a)
+	sort.Strings(b)
+
+	for i := range a {
+		if a[i] != b[i] {
+			return true
+		}
+	}
+
+	return false
 }
 
 // func (n *NetworkDaemon) ClearInterface(containerName string) error {
