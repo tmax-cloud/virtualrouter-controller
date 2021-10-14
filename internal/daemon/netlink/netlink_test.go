@@ -8,6 +8,13 @@ import (
 	remoteNetlink "github.com/vishvananda/netlink"
 )
 
+func TestDD(t *testing.T) {
+	internalNetlink.DD()
+}
+
+func TestPBR(t *testing.T) {
+	internalNetlink.PBR()
+}
 func TestDaemon(t *testing.T) {
 	var rootNetlinkHandle *remoteNetlink.Handle
 	var err error

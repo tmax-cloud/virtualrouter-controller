@@ -29,24 +29,9 @@ spec:
             - NET_ADMIN
           privileged: true
         volumeMounts:
-      #   - name: var
-      #     mountPath: /var
-      #   - name: proc
-      #     mountPath: /proc
-      #   - name: run
-      #     mountPath: /run
         - name: criosock
           mountPath: /var/run/crio/crio.sock
       volumes:
       - name: criosock
         hostPath:
           path: /var/run/crio/crio.sock 
-      # - name: var
-      #   hostPath:
-      #     path: /var
-      # - name: proc
-      #   hostPath:
-      #     path: /proc
-      # - name: run
-      #   hostPath:
-      #     path: /run

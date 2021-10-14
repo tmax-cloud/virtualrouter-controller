@@ -17,9 +17,10 @@ type NetworkDaemon struct {
 }
 
 type virtualrouterSpec struct {
-	vlan        int
-	internalIPs []string
-	externalIPs []string
+	vlan         int
+	internalIPs  []string
+	externalIPs  []string
+	internalCIDR string
 }
 
 func NewDaemon(crioCfg *internalCrio.CrioConfig, netlinkCfg *internalNetlink.Config) *NetworkDaemon {
@@ -84,9 +85,15 @@ func (n *NetworkDaemon) ClearContainer(containerName string) error {
 	return nil
 }
 
-func (n *NetworkDaemon) Sync(containerName string, originVlan *int32, internalIPs []string, externalIPs []string) error {
-	var vlanChanged, internalIPsChanged, externalIPsChanged bool
+func (n *NetworkDaemon) Sync(containerName string, originVlan *int32, internalIPs []string, externalIPs []string, internalCIDR string) error {
+	var vlanChanged, internalIPsChanged, externalIPsChanged, internalCIDRChanged bool
 	var vlan int
+
+	if internalCIDR == "" {
+		klog.Warning("internalCIDR is empty. Nothing to be done")
+		return nil
+	}
+
 	if originVlan == nil {
 		vlan = 0
 	} else {
@@ -102,9 +109,13 @@ func (n *NetworkDaemon) Sync(containerName string, originVlan *int32, internalIP
 		}
 		internalIPsChanged = true
 		externalIPsChanged = true
+		internalCIDRChanged = true
 	} else {
 		if vlan != n.runnigState[containerName].vlan {
 			vlanChanged = true
+		}
+		if internalCIDR != val.internalCIDR {
+			internalCIDRChanged = true
 		}
 		internalIPsChanged = isIPsChange(val.internalIPs, internalIPs)
 		externalIPsChanged = isIPsChange(val.externalIPs, externalIPs)
@@ -134,6 +145,7 @@ func (n *NetworkDaemon) Sync(containerName string, originVlan *int32, internalIP
 	}
 
 	if internalIPsChanged {
+		klog.Info(internalIPs)
 		if err := n.AssignIPaddress(containerName, internalIPs, true); err != nil {
 			klog.ErrorS(err, "AssignIPAddress failed", "containerName", containerName, "IPs", internalIPs)
 			return err
@@ -142,6 +154,7 @@ func (n *NetworkDaemon) Sync(containerName string, originVlan *int32, internalIP
 	}
 
 	if externalIPsChanged {
+		klog.Info(externalIPs)
 		if err := n.AssignIPaddress(containerName, externalIPs, false); err != nil {
 			klog.ErrorS(err, "AssignVlan failed", "containerName", containerName, "IPs", externalIPs)
 			return err
@@ -149,6 +162,38 @@ func (n *NetworkDaemon) Sync(containerName string, originVlan *int32, internalIP
 		n.runnigState[containerName].externalIPs = externalIPs
 	}
 
+	if internalCIDRChanged {
+		klog.Info("InternalCIDR changed")
+		if err := n.SetRoute2Container(containerName, internalCIDR); err != nil {
+			klog.ErrorS(err, "SetRoute2Container failed", "containerName", containerName, "internalCIDR", internalCIDR)
+			return err
+		}
+		n.runnigState[containerName].internalCIDR = internalCIDR
+	}
+
+	return nil
+}
+
+func (n *NetworkDaemon) SetRoute2Container(containerName string, cidr string) error {
+	var containerID string
+	var containerPid int
+
+	containerID = internalCrio.GetContainerIDFromContainerName(containerName, n.crioCfg)
+	if containerID == "" {
+		klog.Errorf("There is no running container with ContainerName: %s", containerName)
+		return fmt.Errorf("no running container found")
+	}
+
+	containerPid = internalCrio.GetContainerPid(containerID, n.crioCfg)
+	if containerPid <= 0 {
+		klog.Errorf("Wrong Pid(%d) value of Container(%s)", containerPid, containerName)
+		return fmt.Errorf("internal error")
+	}
+
+	if err := internalNetlink.SetRoute2Container(containerPid, containerID[:7], cidr); err != nil {
+		klog.ErrorS(err, "Set Routing rule to Container failed", "ContainerName", containerName, "ContainerID", containerID)
+		return err
+	}
 	return nil
 }
 

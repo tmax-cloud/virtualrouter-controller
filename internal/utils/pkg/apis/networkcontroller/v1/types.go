@@ -39,6 +39,7 @@ type VirtualRouterSpec struct {
 	VlanNumber     *int32   `json:"vlanNumber" `
 	InternalIPs    []string `json:"internalIPs"`
 	ExternalIPs    []string `json:"externalIPs"`
+	InternalCIDR   string   `json:"internalCIDR"`
 }
 
 // VirtualRouterStatus is the status for a VirtualRouter resource

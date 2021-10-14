@@ -270,7 +270,7 @@ func (c *Controller) syncHandler(key string) error {
 
 		return err
 	}
-	if err := c.networkDaemon.Sync(name, virtualRouter.Spec.VlanNumber, virtualRouter.Spec.InternalIPs, virtualRouter.Spec.ExternalIPs); err != nil {
+	if err := c.networkDaemon.Sync(name, virtualRouter.Spec.VlanNumber, virtualRouter.Spec.InternalIPs, virtualRouter.Spec.ExternalIPs, virtualRouter.Spec.InternalCIDR); err != nil {
 		klog.ErrorS(err, "Sync failed")
 		return err
 	}

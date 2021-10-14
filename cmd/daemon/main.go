@@ -76,13 +76,14 @@ func main() {
 	kubeInformerFactory.Start(stopCh)
 	exampleInformerFactory.Start(stopCh)
 
-	if err = controller.Run(2, stopCh); err != nil {
-		klog.Fatalf("Error running controller: %s", err.Error())
-	}
+	defer func(d *daemon.NetworkDaemon) {
+		if err := d.ClearAll(); err != nil {
+			klog.ErrorS(err, "Daemon ClearAll failed")
+		}
+	}(d)
 
-	if err := d.ClearAll(); err != nil {
-		klog.ErrorS(err, "Daemon ClearAll failed")
-		return
+	if err = controller.Run(1, stopCh); err != nil {
+		klog.Fatalf("Error running controller: %s", err.Error())
 	}
 
 }
