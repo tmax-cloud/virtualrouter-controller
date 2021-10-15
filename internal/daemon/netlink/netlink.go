@@ -605,28 +605,24 @@ func SetRoute2Container(containerPid int, interfaceName string, cidr string) err
 
 	rule := remoteNetlink.NewRule()
 	rule.Table = 200
-	rule.Mark = 200
 	_, srcIpv4Net, err := net.ParseCIDR(cidr)
 	if err != nil {
 		return fmt.Errorf("parse fail : %s", err.Error())
 	}
 	rule.Src = srcIpv4Net
 
-	var oldRule *remoteNetlink.Rule
 	if ruleList, err := targetNetlinkHandle.RuleList(0); err != nil {
 		klog.Error(err)
 	} else {
 		for _, v := range ruleList {
 			if v.Table == 200 {
-				oldRule = &v
+				if err := targetNetlinkHandle.RuleDel(&v); err != nil {
+					klog.Error(err)
+				} else {
+					klog.InfoS("RuleDel Done", "rule", rule)
+				}
 			}
 		}
-	}
-
-	if err := targetNetlinkHandle.RuleDel(oldRule); err != nil {
-		klog.Error(err)
-	} else {
-		klog.InfoS("RuleDel Done", "rule", rule)
 	}
 
 	if err := targetNetlinkHandle.RuleAdd(rule); err != nil {

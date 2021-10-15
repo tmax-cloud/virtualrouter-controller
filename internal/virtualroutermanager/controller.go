@@ -436,6 +436,7 @@ func newDeployment(virtualRouter *samplev1alpha1.VirtualRouter) *appsv1.Deployme
 								Capabilities: &v1.Capabilities{
 									Add: []v1.Capability{
 										v1.Capability("NET_RAW"),
+										v1.Capability("SYS_ADMIN"),
 									},
 								},
 								Privileged: func(b bool) *bool {
