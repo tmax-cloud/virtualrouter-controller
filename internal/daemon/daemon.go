@@ -32,6 +32,29 @@ func NewDaemon(crioCfg *internalCrio.CrioConfig, netlinkCfg *internalNetlink.Con
 	}
 }
 
+func (n *NetworkDaemon) Start(stopSignalCh <-chan struct{}, stopCh chan<- struct{}) error {
+	klog.Info("Starting NetworkDaemon")
+	klog.Info("Initializing start")
+
+	go func() {
+		if err := n.Initialize(); err != nil {
+			klog.Error("failed to Initialize")
+		} else {
+			klog.Info("Initializing done")
+		}
+		<-stopSignalCh
+		klog.Info("ClearAll start")
+		if err := n.ClearAll(); err != nil {
+			klog.Error("failed to Clear")
+		}
+		klog.Info("ClearAll done")
+		klog.Info("Shutting down Network Daemon")
+		close(stopCh)
+	}()
+
+	return nil
+}
+
 func (n *NetworkDaemon) Initialize() error {
 	if err := internalCrio.Initialize(n.crioCfg); err != nil {
 		klog.ErrorS(err, "Crio Initialization failed")

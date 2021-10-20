@@ -27,8 +27,8 @@ func main() {
 	flag.Parse()
 
 	// set up signals so we handle the first shutdown signal gracefully
-	stopCh := signals.SetupSignalHandler()
-
+	stopSignalCh := signals.SetupSignalHandler()
+	stopCh := make(chan struct{})
 	cfg, err := rest.InClusterConfig()
 
 	// cfg, err := clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
@@ -63,9 +63,21 @@ func main() {
 		InternalBridgeName:    "intbr",
 		ExternalBridgeName:    "extbr",
 	})
-	if err := d.Initialize(); err != nil {
-		klog.ErrorS(err, "Daemon Initialization failed")
-		return
+	// if err := d.Initialize(); err != nil {
+	// 	klog.ErrorS(err, "Daemon Initialization failed")
+	// 	return
+	// }
+
+	// defer func(d *daemon.NetworkDaemon) {
+	// 	klog.Info("defer called")
+	// 	if err := d.ClearAll(); err != nil {
+	// 		klog.ErrorS(err, "Daemon ClearAll failed")
+	// 	}
+	// }(d)
+
+	err = d.Start(stopSignalCh, stopCh)
+	if err != nil {
+		klog.Errorf("Error running network daemon: %s", err.Error())
 	}
 
 	controller := daemon.NewController(kubeClient, exampleClient, d,
@@ -75,12 +87,6 @@ func main() {
 	// Start method is non-blocking and runs all registered informers in a dedicated goroutine.
 	kubeInformerFactory.Start(stopCh)
 	exampleInformerFactory.Start(stopCh)
-
-	defer func(d *daemon.NetworkDaemon) {
-		if err := d.ClearAll(); err != nil {
-			klog.ErrorS(err, "Daemon ClearAll failed")
-		}
-	}(d)
 
 	if err = controller.Run(1, stopCh); err != nil {
 		klog.Fatalf("Error running controller: %s", err.Error())
