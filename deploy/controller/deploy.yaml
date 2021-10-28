@@ -1,17 +1,26 @@
-apiVersion: v1
-kind: Pod
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: controller
+  name: vr-controller
   namespace: virtualrouter
   labels:
     app: controller
 spec:
-  nodeName: node01
-  serviceAccount: virtualrouter-controller-sa
-  containers:
-  - name: controller
-    image: 10.0.0.4:5000/virtualrouter-controller:0.0.1
-    imagePullPolicy: Always
+  replicas: 1
+  selector:
+    matchLabels:
+      app: controller
+  template:
+    metadata:
+      namespace: virtualrouter
+      labels:
+        app: controller
+    spec:
+      serviceAccount: virtualrouter-controller-sa
+      containers:
+      - name: controller
+        image: 10.0.0.4:5000/virtualrouter-controller:0.0.1
+        imagePullPolicy: Always
 
 
     # args:
