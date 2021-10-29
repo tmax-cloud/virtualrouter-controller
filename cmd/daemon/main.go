@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"os"
 	"time"
 
 	kubeinformers "k8s.io/client-go/informers"
@@ -23,6 +24,10 @@ var (
 )
 
 func main() {
+
+	internalCidr := flag.String("internalCidr", os.Getenv("internalCIDR"), "The InternalCIDR of the hosts")
+	externalCidr := flag.String("externalCidr", os.Getenv("externalCIDR"), "The ExternalCIDR of the hosts")
+
 	klog.InitFlags(nil)
 	flag.Parse()
 
@@ -56,13 +61,16 @@ func main() {
 		ImageEndpointIsSet:   true,
 		Timeout:              time.Duration(2000000000),
 	}, &internalNetlink.Config{
-		InternalIPCIDR:        "10.0.0.0/24",
-		ExternalIPCIDR:        "192.168.9.0/24",
+		// InternalIPCIDR:        "10.0.0.0/24",
+		// ExternalIPCIDR:        "192.168.9.0/24",
+		InternalIPCIDR:        *internalCidr,
+		ExternalIPCIDR:        *externalCidr,
 		InternalInterfaceName: "intif",
 		ExternalInterfaceName: "extif",
 		InternalBridgeName:    "intbr",
 		ExternalBridgeName:    "extbr",
 	})
+
 	// if err := d.Initialize(); err != nil {
 	// 	klog.ErrorS(err, "Daemon Initialization failed")
 	// 	return

@@ -21,6 +21,11 @@ spec:
       - name: networkdaemon
         image: 10.0.0.4:5000/daemon:0.0.1
         imagePullPolicy: Always
+        env:
+        - name: internalCIDR
+          value: "10.0.0.0/24"
+        - name: externalCIDR
+          value: "192.168.9.0/24"
         securityContext:
           capabilities:
             add:
