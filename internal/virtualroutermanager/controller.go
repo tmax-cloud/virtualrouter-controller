@@ -430,7 +430,7 @@ func newDeployment(virtualRouter *samplev1alpha1.VirtualRouter) *appsv1.Deployme
 						{
 							// Name:            "virtualrouter-" + uuid.String(),
 							Name:            virtualRouter.Name,
-							Image:           "10.0.0.4:5000/virtualrouter:0.0.1",
+							Image:           "tmaxcloudck/virtualrouter:0.0.1",
 							ImagePullPolicy: "Always",
 							SecurityContext: &v1.SecurityContext{
 								Capabilities: &v1.Capabilities{

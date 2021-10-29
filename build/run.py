@@ -12,7 +12,7 @@ DAEMON_PKG_NAME = '../cmd/daemon/main.go'
 DOCKER_REGISTRY = '10.0.0.4:5000/'
 CONTROLLER_DOCKER_IMAGE_NAME = "virtualrouter-controller"
 CONTROLLER_DOCKER_IMAGE_TAG = "0.0.1"
-DAEMON_DOCKER_IMAGE_NAME = 'daemon'
+DAEMON_DOCKER_IMAGE_NAME = 'virtualrouter-daemon'
 DAEMON_DOCKER_IMAGE_TAG = "0.0.1"
 
 def subprocess_open(command):
