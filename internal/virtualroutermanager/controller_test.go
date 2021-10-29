@@ -33,9 +33,9 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 
-	networkcontroller "github.com/cho4036/virtualrouter-controller/internal/utils/pkg/apis/networkcontroller/v1"
-	"github.com/cho4036/virtualrouter-controller/internal/utils/pkg/generated/clientset/versioned/fake"
-	informers "github.com/cho4036/virtualrouter-controller/internal/utils/pkg/generated/informers/externalversions"
+	networkcontroller "github.com/tmax-cloud/virtualrouter-controller/internal/utils/pkg/apis/networkcontroller/v1"
+	"github.com/tmax-cloud/virtualrouter-controller/internal/utils/pkg/generated/clientset/versioned/fake"
+	informers "github.com/tmax-cloud/virtualrouter-controller/internal/utils/pkg/generated/informers/externalversions"
 )
 
 var (

@@ -1,6 +1,6 @@
 // This is a generated file. Do not edit directly.
 
-module github.com/cho4036/virtualrouter-controller
+module github.com/tmax-cloud/virtualrouter-controller
 
 go 1.15
 

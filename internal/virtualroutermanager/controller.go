@@ -39,11 +39,11 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog/v2"
 
-	samplev1alpha1 "github.com/cho4036/virtualrouter-controller/internal/utils/pkg/apis/networkcontroller/v1"
-	clientset "github.com/cho4036/virtualrouter-controller/internal/utils/pkg/generated/clientset/versioned"
-	samplescheme "github.com/cho4036/virtualrouter-controller/internal/utils/pkg/generated/clientset/versioned/scheme"
-	informers "github.com/cho4036/virtualrouter-controller/internal/utils/pkg/generated/informers/externalversions/networkcontroller/v1"
-	listers "github.com/cho4036/virtualrouter-controller/internal/utils/pkg/generated/listers/networkcontroller/v1"
+	samplev1alpha1 "github.com/tmax-cloud/virtualrouter-controller/internal/utils/pkg/apis/networkcontroller/v1"
+	clientset "github.com/tmax-cloud/virtualrouter-controller/internal/utils/pkg/generated/clientset/versioned"
+	samplescheme "github.com/tmax-cloud/virtualrouter-controller/internal/utils/pkg/generated/clientset/versioned/scheme"
+	informers "github.com/tmax-cloud/virtualrouter-controller/internal/utils/pkg/generated/informers/externalversions/networkcontroller/v1"
+	listers "github.com/tmax-cloud/virtualrouter-controller/internal/utils/pkg/generated/listers/networkcontroller/v1"
 )
 
 const controllerAgentName = "virtual-router"

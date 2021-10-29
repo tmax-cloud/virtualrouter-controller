@@ -23,9 +23,9 @@ import (
 	sync "sync"
 	time "time"
 
-	versioned "github.com/cho4036/virtualrouter-controller/internal/utils/pkg/generated/clientset/versioned"
-	internalinterfaces "github.com/cho4036/virtualrouter-controller/internal/utils/pkg/generated/informers/externalversions/internalinterfaces"
-	networkcontroller "github.com/cho4036/virtualrouter-controller/internal/utils/pkg/generated/informers/externalversions/networkcontroller"
+	versioned "github.com/tmax-cloud/virtualrouter-controller/internal/utils/pkg/generated/clientset/versioned"
+	internalinterfaces "github.com/tmax-cloud/virtualrouter-controller/internal/utils/pkg/generated/informers/externalversions/internalinterfaces"
+	networkcontroller "github.com/tmax-cloud/virtualrouter-controller/internal/utils/pkg/generated/informers/externalversions/networkcontroller"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

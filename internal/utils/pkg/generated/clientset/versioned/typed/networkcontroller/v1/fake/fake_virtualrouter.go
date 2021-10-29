@@ -21,7 +21,7 @@ package fake
 import (
 	"context"
 
-	networkcontrollerv1 "github.com/cho4036/virtualrouter-controller/internal/utils/pkg/apis/networkcontroller/v1"
+	networkcontrollerv1 "github.com/tmax-cloud/virtualrouter-controller/internal/utils/pkg/apis/networkcontroller/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

@@ -19,8 +19,8 @@ limitations under the License.
 package networkcontroller
 
 import (
-	internalinterfaces "github.com/cho4036/virtualrouter-controller/internal/utils/pkg/generated/informers/externalversions/internalinterfaces"
-	v1 "github.com/cho4036/virtualrouter-controller/internal/utils/pkg/generated/informers/externalversions/networkcontroller/v1"
+	internalinterfaces "github.com/tmax-cloud/virtualrouter-controller/internal/utils/pkg/generated/informers/externalversions/internalinterfaces"
+	v1 "github.com/tmax-cloud/virtualrouter-controller/internal/utils/pkg/generated/informers/externalversions/networkcontroller/v1"
 )
 
 // Interface provides access to each of this group's versions.

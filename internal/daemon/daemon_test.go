@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	daemon "github.com/cho4036/virtualrouter-controller/internal/daemon"
-	"github.com/cho4036/virtualrouter-controller/internal/daemon/crio"
-	"github.com/cho4036/virtualrouter-controller/internal/daemon/netlink"
+	daemon "github.com/tmax-cloud/virtualrouter-controller/internal/daemon"
+	"github.com/tmax-cloud/virtualrouter-controller/internal/daemon/crio"
+	"github.com/tmax-cloud/virtualrouter-controller/internal/daemon/netlink"
 )
 
 var _ daemon.NetworkDaemon

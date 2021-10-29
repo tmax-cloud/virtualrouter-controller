@@ -10,12 +10,12 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 
-	daemon "github.com/cho4036/virtualrouter-controller/internal/daemon"
-	internalCrio "github.com/cho4036/virtualrouter-controller/internal/daemon/crio"
-	internalNetlink "github.com/cho4036/virtualrouter-controller/internal/daemon/netlink"
-	clientset "github.com/cho4036/virtualrouter-controller/internal/utils/pkg/generated/clientset/versioned"
-	informers "github.com/cho4036/virtualrouter-controller/internal/utils/pkg/generated/informers/externalversions"
-	"github.com/cho4036/virtualrouter-controller/internal/utils/pkg/signals"
+	daemon "github.com/tmax-cloud/virtualrouter-controller/internal/daemon"
+	internalCrio "github.com/tmax-cloud/virtualrouter-controller/internal/daemon/crio"
+	internalNetlink "github.com/tmax-cloud/virtualrouter-controller/internal/daemon/netlink"
+	clientset "github.com/tmax-cloud/virtualrouter-controller/internal/utils/pkg/generated/clientset/versioned"
+	informers "github.com/tmax-cloud/virtualrouter-controller/internal/utils/pkg/generated/informers/externalversions"
+	"github.com/tmax-cloud/virtualrouter-controller/internal/utils/pkg/signals"
 )
 
 var (

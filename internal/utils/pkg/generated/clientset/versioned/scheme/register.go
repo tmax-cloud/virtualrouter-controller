@@ -19,7 +19,7 @@ limitations under the License.
 package scheme
 
 import (
-	tmaxv1 "github.com/cho4036/virtualrouter-controller/internal/utils/pkg/apis/networkcontroller/v1"
+	tmaxv1 "github.com/tmax-cloud/virtualrouter-controller/internal/utils/pkg/apis/networkcontroller/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

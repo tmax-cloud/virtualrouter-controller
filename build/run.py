@@ -3,7 +3,7 @@ import os
 import getopt, sys
 import time
 
-# PKG_NAME = 'github.com/cho4036/virtualrouter-controller'
+# PKG_NAME = 'github.com/tmax-cloud/virtualrouter-controller'
 CONTROLLER_GO_BINARY_NAME = '../build/virtualroutermanager/virtualrouter-controller'
 CONTROLLER_PKG_NAME = '../cmd/virtualroutermanager/main.go'
 DAEMON_GO_BINARY_NAME = '../build/daemon/daemon'

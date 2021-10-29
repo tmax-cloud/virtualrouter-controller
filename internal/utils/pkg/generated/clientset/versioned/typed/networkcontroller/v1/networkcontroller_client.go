@@ -19,8 +19,8 @@ limitations under the License.
 package v1
 
 import (
-	v1 "github.com/cho4036/virtualrouter-controller/internal/utils/pkg/apis/networkcontroller/v1"
-	"github.com/cho4036/virtualrouter-controller/internal/utils/pkg/generated/clientset/versioned/scheme"
+	v1 "github.com/tmax-cloud/virtualrouter-controller/internal/utils/pkg/apis/networkcontroller/v1"
+	"github.com/tmax-cloud/virtualrouter-controller/internal/utils/pkg/generated/clientset/versioned/scheme"
 	rest "k8s.io/client-go/rest"
 )
 

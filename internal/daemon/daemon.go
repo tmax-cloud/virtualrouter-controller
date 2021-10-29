@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sort"
 
-	internalCrio "github.com/cho4036/virtualrouter-controller/internal/daemon/crio"
-	internalNetlink "github.com/cho4036/virtualrouter-controller/internal/daemon/netlink"
+	internalCrio "github.com/tmax-cloud/virtualrouter-controller/internal/daemon/crio"
+	internalNetlink "github.com/tmax-cloud/virtualrouter-controller/internal/daemon/netlink"
 	"k8s.io/klog/v2"
 )
 

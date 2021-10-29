@@ -18,4 +18,4 @@ limitations under the License.
 // +groupName=tmax.hypercloud.com
 
 // Package v1alpha1 is the v1alpha1 version of the API.
-package v1 // import "github.com/cho4036/virtualrouter-controller/internal/utils/pkg/apis/networkcontroller/v1alpha1"
+package v1 // import "github.com/tmax-cloud/virtualrouter-controller/internal/utils/pkg/apis/networkcontroller/v1alpha1"

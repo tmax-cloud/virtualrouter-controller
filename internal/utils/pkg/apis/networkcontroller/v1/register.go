@@ -21,7 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	networkcontroller "github.com/cho4036/virtualrouter-controller/internal/utils/pkg/apis/networkcontroller"
+	networkcontroller "github.com/tmax-cloud/virtualrouter-controller/internal/utils/pkg/apis/networkcontroller"
 )
 
 // SchemeGroupVersion is group version used to register these objects

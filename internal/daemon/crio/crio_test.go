@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	internalCrio "github.com/cho4036/virtualrouter-controller/internal/daemon/crio"
+	internalCrio "github.com/tmax-cloud/virtualrouter-controller/internal/daemon/crio"
 )
 
 func TestDaemon(t *testing.T) {

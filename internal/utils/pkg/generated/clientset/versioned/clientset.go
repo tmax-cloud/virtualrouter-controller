@@ -21,7 +21,7 @@ package versioned
 import (
 	"fmt"
 
-	tmaxv1 "github.com/cho4036/virtualrouter-controller/internal/utils/pkg/generated/clientset/versioned/typed/networkcontroller/v1"
+	tmaxv1 "github.com/tmax-cloud/virtualrouter-controller/internal/utils/pkg/generated/clientset/versioned/typed/networkcontroller/v1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"

@@ -3,7 +3,7 @@ package netlink_test
 import (
 	"testing"
 
-	internalNetlink "github.com/cho4036/virtualrouter-controller/internal/daemon/netlink"
+	internalNetlink "github.com/tmax-cloud/virtualrouter-controller/internal/daemon/netlink"
 )
 
 func TestDD(t *testing.T) {
