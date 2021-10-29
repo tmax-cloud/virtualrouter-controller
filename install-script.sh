@@ -1,13 +1,5 @@
 #!/bin/bash
 
-private_registry="192.168.7.191:5000"
-
-function build() {
-    go build .
-    mv virtual-router ./build
-    docker build -t ${private_registry}/virtual-router:0.1 ./build/
-    docker push ${private_registry}/virtual-router:0.1
-}
 
 function install() {
     kubectl apply -f deploy/namespace.yaml
@@ -24,9 +16,6 @@ function uninstall() {
 
 function main() {
     case "${1:-}" in
-    build)
-        build
-        ;;
     install)
         install
         ;;
@@ -36,7 +25,6 @@ function main() {
     *)
         set +x
         echo "service list:" >&2
-        echo "  $0 build" >&2
         echo "  $0 install" >&2
         echo "  $0 uninstall" >&2
         ;;

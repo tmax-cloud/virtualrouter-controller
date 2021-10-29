@@ -40,6 +40,7 @@ type VirtualRouterSpec struct {
 	InternalIPs    []string `json:"internalIPs"`
 	ExternalIPs    []string `json:"externalIPs"`
 	InternalCIDR   string   `json:"internalCIDR"`
+	Image          string   `json:"image"`
 }
 
 // VirtualRouterStatus is the status for a VirtualRouter resource
