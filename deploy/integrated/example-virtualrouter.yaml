@@ -1,0 +1,18 @@
+apiVersion: tmax.hypercloud.com/v1
+kind: VirtualRouter
+metadata:
+  name: virtualrouter1
+  namespace: virtualrouter
+spec:
+  deploymentName: example-virtualrouter
+  replicas: 1
+  vlanNumber: 201
+  internalIPs:
+    - 10.10.10.10/24
+    - 10.10.10.11/24
+    - 10.10.10.12/24
+  externalIPs:
+    - 192.168.9.35/24
+  internalCIDR: "10.10.10.0/24"
+  image: tmaxcloudck/virtualrouter:0.0.1
+

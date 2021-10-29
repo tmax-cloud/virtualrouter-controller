@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: networkdaemon
+  namespace: virtualrouter
+  labels:
+    app: daemon
+spec:
+  selector:
+    matchLabels:
+      name: networkdaemon
+  template:
+    metadata:
+      labels:
+        name: networkdaemon
+    spec:
+      serviceAccount: virtualrouter-controller-sa
+      hostNetwork: true
+      hostPID: true
+      containers:
+      - name: networkdaemon
+        image: tmaxcloudck/virtualrouter-daemon:0.0.1
+        imagePullPolicy: Always
+        env:
+        - name: internalCIDR
+          value: "10.0.0.0/24"
+        - name: externalCIDR
+          value: "192.168.9.0/24"
+        securityContext:
+          capabilities:
+            add:
+            - '*'
+            - NET_RAW
+            - NET_ADMIN
+          privileged: true
+        volumeMounts:
+        - name: criosock
+          mountPath: /var/run/crio/crio.sock
+      volumes:
+      - name: criosock
+        hostPath:
+          path: /var/run/crio/crio.sock 

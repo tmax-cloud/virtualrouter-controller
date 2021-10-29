@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vr-controller
+  namespace: virtualrouter
+  labels:
+    app: controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: controller
+  template:
+    metadata:
+      namespace: virtualrouter
+      labels:
+        app: controller
+    spec:
+      serviceAccount: virtualrouter-controller-sa
+      containers:
+      - name: controller
+        image: tmaxcloudck/virtualrouter-controller:0.0.1
+        imagePullPolicy: Always
+
+
+    # args:
+    # - "-lease-lock-name=controller-lease-lock"
+    # - "-lease-lock-namespace=sample-controller"
+    # env:
+    # - name: VM_PROVIDER_SVC_NAME
+    #   value: "vmprovider"
+    # - name: VM_PROVIDER_SVC_NAMESPACE
+    #   value: "sample-controller"
+    # - name: VM_PROVIDER_PORT
+    #   value: "8001"
+    # - name: PROMETHEUS_EXPORTER_ADDRESS
+    #   value: ":2112"
+    # - name: CONTROLLER_NAMESPACE
+    #   valueFrom:
+    #     fieldRef:
+    #       fieldPath: metadata.namespace
+    # ports:
+    # - name: prometheus
+    #   containerPort: 2112
+# ---
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: controller
+#   namespace: sample-controller
+#   labels:
+#     app: controller
+# spec:
+#   replicas: 2
+#   selector:
+#     matchLabels:
+#       app: controller
+#   template:
+#     metadata:
+#       namespace: sample-controller
+#       labels:
+#         app: controller
+#     spec:
+#       serviceAccount: vm-controller-sa
+#       containers:
+#       - name: controller
+#         image: controller:0.1
+#         args:
+#         - "-lease-lock-name=controller-lease-lock"
+#         - "-lease-lock-namespace=sample-controller"
+#         env:
+#         - name: VM_PROVIDER_SVC_NAME
+#           value: "vmprovider"
+#         - name: VM_PROVIDER_SVC_NAMESPACE
+#           value: "sample-controller"
+#         - name: VM_PROVIDER_PORT
+#           value: "8001"
+#         - name: PROMETHEUS_EXPORTER_ADDRESS
+#           value: ":2112"
+#         - name: CONTROLLER_NAMESPACE
+#           valueFrom:
+#             fieldRef:
+#               fieldPath: metadata.namespace
+#         ports:
+#         - name: prometheus
+#           containerPort: 2112
