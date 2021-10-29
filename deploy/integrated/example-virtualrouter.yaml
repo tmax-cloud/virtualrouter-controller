@@ -14,4 +14,5 @@ spec:
   externalIPs:
     - 192.168.9.35/24
   internalCIDR: "10.10.10.0/24"
+  image: tmaxcloudck/virtualrouter:0.0.1
 
