@@ -183,7 +183,7 @@
     1. SNAT 적용을 위한 CR 사용법
         * Match에 Tenant의 네트워크의 CIDR을 기입
         * Action의 srcIP에 0.0.0.0(MASQUERADE)를 입력
-        * ex) [masqExample.yaml](https://github.com/tmax-cloud/virtualrouter/deploy/masqExample.yaml)
+        * ex) [masqExample.yaml](https://github.com/tmax-cloud/virtualrouter/blob/main/deploy/masqExample.yaml)
 
         ```yaml
         apiVersion: virtualrouter.tmax.hypercloud.com/v1
@@ -204,7 +204,7 @@
         * privateIP <==> publicIP 에 대한 1대1 대응 rule 생성
         * match에는 /32로 32 Masking, action에는 Masking 표현 없이 기재
         * ex) 10.10.10.4(internalIP) <==> 192.168.9.134(publicIP)
-        * ex) [staticNATExample.yaml](https://github.com/tmax-cloud/virtualrouter/deploy/staticNATExample.yaml)
+        * ex) [staticNATExample.yaml](https://github.com/tmax-cloud/virtualrouter/blob/main/deploy/staticNATExample.yaml)
         
         ```yaml
         apiVersion: virtualrouter.tmax.hypercloud.com/v1
@@ -231,7 +231,7 @@
         * private CIDR <==> public CIDR 에 대한 "ACCEPT" or "DROP" policy 생성
         * 정상적으로 허용 rule을 만들기 위해선 아래 예제와 같이 양방향에 대한 rule을 생성해야함
         * ex) 10.10.10.0/24 (internalIP) <==> 192.168.9.31/32 (publicIP) 통신 허용 rule 생성
-        * ex) [firewallExample.yaml](https://github.com/tmax-cloud/virtualrouter/deploy/firewallExample.yaml)
+        * ex) [firewallExample.yaml](https://github.com/tmax-cloud/virtualrouter/blob/main/deploy/firewallExample.yaml)
         
         ```yaml
         apiVersion: virtualrouter.tmax.hypercloud.com/v1
@@ -260,7 +260,7 @@
         * 가중치의 범위는 1~100 사이의 자연수 값이며 (가중치 값 / 100) 확률로 해당 Target이 선택됨
         * 마지막 Target의 경우 항상 weight는 100으로 설정
         * ex) 아래 예제의 경우 10.10.10.3과 10.10.10.4 간에 4:6 비율로 부하 분산이 됨
-        * ex) [loadbalancerExample.yaml](https://github.com/tmax-cloud/virtualrouter/deploy/loadbalancerExample.yaml)
+        * ex) [loadbalancerExample.yaml](https://github.com/tmax-cloud/virtualrouter/blob/main/deploy/loadbalancerExample.yaml)
         
         ```yaml
         apiVersion: virtualrouter.tmax.hypercloud.com/v1
