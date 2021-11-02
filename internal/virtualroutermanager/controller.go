@@ -44,6 +44,7 @@ import (
 	samplescheme "github.com/tmax-cloud/virtualrouter-controller/internal/utils/pkg/generated/clientset/versioned/scheme"
 	informers "github.com/tmax-cloud/virtualrouter-controller/internal/utils/pkg/generated/informers/externalversions/networkcontroller/v1"
 	listers "github.com/tmax-cloud/virtualrouter-controller/internal/utils/pkg/generated/listers/networkcontroller/v1"
+	virtualrouter "github.com/tmax-cloud/virtualrouter/pkg/apis/networkcontroller"
 )
 
 const controllerAgentName = "virtual-router"
@@ -51,9 +52,9 @@ const controllerAgentName = "virtual-router"
 var virtualRouterNamespace = "virtualrouter"
 
 const (
-	serviceAccountName     = "virtualrouter-sa"
-	clusterRoleName        = "virtualrouter-role"
-	clusterRoleBindingName = "virtualrouter-rb"
+	SERVICE_ACCOUNT_NAME = "virtualrouter-sa"
+	ROLE_NAME            = "virtualrouter-role"
+	ROLE_BINDING_NAME    = "virtualrouter-rb"
 )
 
 const (
@@ -261,7 +262,6 @@ func (c *Controller) syncHandler(key string) error {
 
 	// Get the VirtualRouter resource with this namespace/name
 	virtualRouter, err := c.virtualRoutersLister.VirtualRouters(namespace).Get(name)
-	klog.Info(virtualRouter.GetNamespace())
 	if err != nil {
 		// The VirtualRouter resource may no longer exist, in which case we stop
 		// processing.
@@ -282,12 +282,35 @@ func (c *Controller) syncHandler(key string) error {
 		return nil
 	}
 
+	// create deployment with new Namespace same as virtualrouter resource name
+	newNS := virtualRouter.Name
+	if err := c.ensureVirtualRouterNamespace(newNS, virtualRouter); err != nil {
+		klog.Error(err)
+		return err
+	}
+
+	if err := c.ensureVirtualRouterSA(newNS, virtualRouter); err != nil {
+		klog.Error(err)
+		return err
+	}
+
+	if err := c.ensureVirtualRouterRole(newNS, virtualRouter); err != nil {
+		klog.Error(err)
+		return err
+	}
+
+	if err := c.ensureVirtualRouterRoleBinding(newNS, virtualRouter); err != nil {
+		klog.Error(err)
+		return err
+	}
+
 	// Get the deployment with the name specified in VirtualRouter.spec
-	deployment, err := c.deploymentsLister.Deployments(virtualRouter.Namespace).Get(deploymentName)
+	deployment, err := c.deploymentsLister.Deployments(newNS).Get(deploymentName)
 	// If the resource doesn't exist, we'll create it
 	if errors.IsNotFound(err) {
 		klog.Info("NotFound Deploy start")
-		deployment, err = c.kubeclientset.AppsV1().Deployments(virtualRouter.Namespace).Create(context.TODO(), newDeployment(virtualRouter), metav1.CreateOptions{})
+
+		deployment, err = c.kubeclientset.AppsV1().Deployments(newNS).Create(context.TODO(), newDeployment(newNS, virtualRouter), metav1.CreateOptions{})
 	}
 
 	// If an error occurs during Get/Create, we'll requeue the item so we can
@@ -310,7 +333,7 @@ func (c *Controller) syncHandler(key string) error {
 	// should update the Deployment resource.
 	if virtualRouter.Spec.Replicas != nil && *virtualRouter.Spec.Replicas != *deployment.Spec.Replicas {
 		klog.V(4).Infof("VirtualRouter %s replicas: %d, deployment replicas: %d", name, *virtualRouter.Spec.Replicas, *deployment.Spec.Replicas)
-		deployment, err = c.kubeclientset.AppsV1().Deployments(virtualRouter.Namespace).Update(context.TODO(), newDeployment(virtualRouter), metav1.UpdateOptions{})
+		deployment, err = c.kubeclientset.AppsV1().Deployments(newNS).Update(context.TODO(), newDeployment(newNS, virtualRouter), metav1.UpdateOptions{})
 	}
 
 	// If an error occurs during Update, we'll requeue the item so we can
@@ -401,7 +424,7 @@ func (c *Controller) handleObject(obj interface{}) {
 // newDeployment creates a new Deployment for a VirtualRouter resource. It also sets
 // the appropriate OwnerReferences on the resource so handleObject can discover
 // the VirtualRouter resource that 'owns' it.
-func newDeployment(virtualRouter *samplev1alpha1.VirtualRouter) *appsv1.Deployment {
+func newDeployment(newNS string, virtualRouter *samplev1alpha1.VirtualRouter) *appsv1.Deployment {
 	labels := map[string]string{
 		"app":        "virtualrouter",
 		"controller": virtualRouter.Name,
@@ -410,7 +433,7 @@ func newDeployment(virtualRouter *samplev1alpha1.VirtualRouter) *appsv1.Deployme
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      virtualRouter.Spec.DeploymentName,
-			Namespace: virtualRouter.Namespace,
+			Namespace: newNS,
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(virtualRouter, samplev1alpha1.SchemeGroupVersion.WithKind("VirtualRouter")),
 			},
@@ -433,6 +456,12 @@ func newDeployment(virtualRouter *samplev1alpha1.VirtualRouter) *appsv1.Deployme
 							Image: virtualRouter.Spec.Image,
 							// Image:           "tmaxcloudck/virtualrouter:0.0.1",
 							ImagePullPolicy: "Always",
+							Env: []v1.EnvVar{
+								{
+									Name:  "POD_NAMESPACE",
+									Value: newNS,
+								},
+							},
 							SecurityContext: &v1.SecurityContext{
 								Capabilities: &v1.Capabilities{
 									Add: []v1.Capability{
@@ -453,17 +482,20 @@ func newDeployment(virtualRouter *samplev1alpha1.VirtualRouter) *appsv1.Deployme
 	}
 }
 
-func (c *Controller) ensureVirtualRouterSA() error {
-	_, err := c.kubeclientset.CoreV1().ServiceAccounts(virtualRouterNamespace).Get(context.TODO(), serviceAccountName, metav1.GetOptions{})
+func (c *Controller) ensureVirtualRouterSA(newNS string, virtualRouter *samplev1alpha1.VirtualRouter) error {
+	_, err := c.kubeclientset.CoreV1().ServiceAccounts(newNS).Get(context.TODO(), SERVICE_ACCOUNT_NAME, metav1.GetOptions{})
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			klog.Error(err)
 			return err
 		}
-		_, err = c.kubeclientset.CoreV1().ServiceAccounts(virtualRouterNamespace).Create(context.TODO(), &v1.ServiceAccount{
+		_, err = c.kubeclientset.CoreV1().ServiceAccounts(newNS).Create(context.TODO(), &v1.ServiceAccount{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      serviceAccountName,
-				Namespace: virtualRouterNamespace,
+				Name:      SERVICE_ACCOUNT_NAME,
+				Namespace: newNS,
+				OwnerReferences: []metav1.OwnerReference{
+					*metav1.NewControllerRef(virtualRouter, samplev1alpha1.SchemeGroupVersion.WithKind("VirtualRouter")),
+				},
 			},
 		}, metav1.CreateOptions{})
 		if err != nil {
@@ -474,23 +506,96 @@ func (c *Controller) ensureVirtualRouterSA() error {
 	return nil
 }
 
-func (c *Controller) ensureVirtualRouterClusterRole() error {
-	_, err := c.kubeclientset.RbacV1().ClusterRoles().Get(context.TODO(), clusterRoleName, metav1.GetOptions{})
+// ToDo: modify magic string
+func (c *Controller) ensureVirtualRouterRole(newNS string, virtualRouter *samplev1alpha1.VirtualRouter) error {
+	_, err := c.kubeclientset.RbacV1().Roles(newNS).Get(context.TODO(), ROLE_NAME, metav1.GetOptions{})
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			klog.Error(err)
 			return err
 		}
 
-		_, err = c.kubeclientset.RbacV1().ClusterRoles().Create(context.TODO(), &rbac_v1.ClusterRole{
+		_, err = c.kubeclientset.RbacV1().Roles(newNS).Create(context.TODO(), &rbac_v1.Role{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: clusterRoleName,
+				Name:      ROLE_NAME,
+				Namespace: newNS,
+				OwnerReferences: []metav1.OwnerReference{
+					*metav1.NewControllerRef(virtualRouter, samplev1alpha1.SchemeGroupVersion.WithKind("VirtualRouter")),
+				},
 			},
 			Rules: []rbac_v1.PolicyRule{
 				{
-					APIGroups: []string{"virtualrouter" + samplev1alpha1.SchemeGroupVersion.Group},
-					Resources: []string{"*"},
-					Verbs:     []string{"*"},
+					APIGroups: []string{
+						// samplev1alpha1.SchemeGroupVersion.Group,
+						virtualrouter.GroupName,
+					},
+					Resources: []string{
+						"natrules", "firewallrules", "loadbalancerrules",
+					},
+					Verbs: []string{
+						"get", "list", "watch", "create", "update", "patch", "delete",
+					},
+				},
+			},
+		}, metav1.CreateOptions{})
+		if err != nil {
+			klog.Error(err)
+			return err
+		}
+	}
+	return nil
+}
+
+// ToDo: modify magic string
+func (c *Controller) ensureVirtualRouterRoleBinding(newNS string, virtualRouter *samplev1alpha1.VirtualRouter) error {
+	_, err := c.kubeclientset.RbacV1().RoleBindings(newNS).Get(context.TODO(), ROLE_BINDING_NAME, metav1.GetOptions{})
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			klog.Error(err)
+			return err
+		}
+
+		_, err = c.kubeclientset.RbacV1().RoleBindings(newNS).Create(context.TODO(), &rbac_v1.RoleBinding{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      ROLE_BINDING_NAME,
+				Namespace: newNS,
+				OwnerReferences: []metav1.OwnerReference{
+					*metav1.NewControllerRef(virtualRouter, samplev1alpha1.SchemeGroupVersion.WithKind("VirtualRouter")),
+				},
+			},
+			RoleRef: rbac_v1.RoleRef{
+				APIGroup: rbac_v1.SchemeGroupVersion.Group,
+				Kind:     "Role",
+				Name:     ROLE_NAME,
+			},
+			Subjects: []rbac_v1.Subject{
+				{
+					Kind: "ServiceAccount",
+					Name: SERVICE_ACCOUNT_NAME,
+				},
+			},
+		}, metav1.CreateOptions{})
+		if err != nil {
+			klog.Error(err)
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *Controller) ensureVirtualRouterNamespace(newNS string, virtualRouter *samplev1alpha1.VirtualRouter) error {
+	_, err := c.kubeclientset.CoreV1().Namespaces().Get(context.TODO(), newNS, metav1.GetOptions{})
+	// RbacV1().ClusterRoles().Get(context.TODO(), clusterRoleName, metav1.GetOptions{})
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			klog.Error(err)
+			return err
+		}
+		_, err := c.kubeclientset.CoreV1().Namespaces().Create(context.TODO(), &v1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: newNS,
+				OwnerReferences: []metav1.OwnerReference{
+					*metav1.NewControllerRef(virtualRouter, samplev1alpha1.SchemeGroupVersion.WithKind("VirtualRouter")),
 				},
 			},
 		}, metav1.CreateOptions{})

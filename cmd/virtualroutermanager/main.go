@@ -18,6 +18,7 @@ package main
 
 import (
 	"flag"
+	"os"
 	"time"
 
 	kubeinformers "k8s.io/client-go/informers"
@@ -48,6 +49,9 @@ func main() {
 
 	cfg, err := rest.InClusterConfig()
 
+	// ToDo: find out more graceful method
+	namespace := os.Getenv("POD_NAMESPACE")
+
 	// cfg, err := clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
 	// if err != nil {
 	// 	klog.Fatalf("Error building kubeconfig: %s", err.Error())
@@ -64,7 +68,8 @@ func main() {
 	}
 
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, time.Second*30)
-	exampleInformerFactory := informers.NewSharedInformerFactory(exampleClient, time.Second*30)
+	// exampleInformerFactory := informers.NewSharedInformerFactory(exampleClient, time.Second*30)
+	exampleInformerFactory := informers.NewFilteredSharedInformerFactory(exampleClient, time.Second*30, namespace, nil)
 
 	controller := c1.NewController(kubeClient, exampleClient,
 		kubeInformerFactory.Apps().V1().Deployments(),
