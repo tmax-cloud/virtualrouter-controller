@@ -1,7 +1,50 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: virtualrouter-controller-sa
+  namespace: virtualrouter
+---
+
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
+  name: virtualrouter-controller-cluster-role
+rules:
+- apiGroups:
+  - '*'
+  resources:
+  - '*'
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: virtualrouter-controller-cluster-rb
+  namespace: virtualrouter
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: virtualrouter-controller-cluster-role
+subjects:
+- kind: ServiceAccount
+  name: virtualrouter-controller-sa
+  namespace: virtualrouter
+---
+
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
   name: virtualrouter-controller-role
+  namespace: virtualrouter
 rules:
 - apiGroups:
   - "tmax.hypercloud.com"
@@ -21,42 +64,18 @@ rules:
   - "leases"
   verbs:
   - '*'
-- apiGroups:
-  - "*"
-  resources:
-  - '*'
-  verbs:
-  - get
-  - list
-  - watch
-  - create
-  - update
-  - patch
-  - delete
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: virtualrouter-controller-sa
-  namespace: virtualrouter
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
+kind: RoleBinding
 metadata:
   name: virtualrouter-controller-rb
+  namespace: virtualrouter
 roleRef:
   apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
+  kind: Role
   name: virtualrouter-controller-role
 subjects:
 - kind: ServiceAccount
   name: virtualrouter-controller-sa
-  namespace: virtualrouter
----
-# For virtual router instance
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: virtualrouter-sa
   namespace: virtualrouter
 ---

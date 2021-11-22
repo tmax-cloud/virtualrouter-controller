@@ -258,7 +258,8 @@ func TestCreatesDeployment(t *testing.T) {
 	f.virtualRouterLister = append(f.virtualRouterLister, virtualRouter)
 	f.objects = append(f.objects, virtualRouter)
 
-	expDeployment := newDeployment(virtualRouter)
+	newNS := virtualRouter.Name
+	expDeployment := newDeployment(newNS, virtualRouter)
 	f.expectCreateDeploymentAction(expDeployment)
 	f.expectUpdateVirtualRouterStatusAction(virtualRouter)
 
@@ -268,7 +269,8 @@ func TestCreatesDeployment(t *testing.T) {
 func TestDoNothing(t *testing.T) {
 	f := newFixture(t)
 	virtualRouter := newVirtualRouter("test", int32Ptr(1))
-	d := newDeployment(virtualRouter)
+	newNS := virtualRouter.Name
+	d := newDeployment(newNS, virtualRouter)
 
 	f.virtualRouterLister = append(f.virtualRouterLister, virtualRouter)
 	f.objects = append(f.objects, virtualRouter)
@@ -282,11 +284,12 @@ func TestDoNothing(t *testing.T) {
 func TestUpdateDeployment(t *testing.T) {
 	f := newFixture(t)
 	virtualRouter := newVirtualRouter("test", int32Ptr(1))
-	d := newDeployment(virtualRouter)
+	newNS := virtualRouter.Name
+	d := newDeployment(newNS, virtualRouter)
 
 	// Update replicas
 	virtualRouter.Spec.Replicas = int32Ptr(2)
-	expDeployment := newDeployment(virtualRouter)
+	expDeployment := newDeployment(newNS, virtualRouter)
 
 	f.virtualRouterLister = append(f.virtualRouterLister, virtualRouter)
 	f.objects = append(f.objects, virtualRouter)
@@ -301,7 +304,8 @@ func TestUpdateDeployment(t *testing.T) {
 func TestNotControlledByUs(t *testing.T) {
 	f := newFixture(t)
 	virtualRouter := newVirtualRouter("test", int32Ptr(1))
-	d := newDeployment(virtualRouter)
+	newNS := virtualRouter.Name
+	d := newDeployment(newNS, virtualRouter)
 
 	d.ObjectMeta.OwnerReferences = []metav1.OwnerReference{}
 

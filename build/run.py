@@ -10,8 +10,9 @@ DAEMON_GO_BINARY_NAME = '../build/daemon/daemon'
 DAEMON_PKG_NAME = '../cmd/daemon/main.go'
 
 DOCKER_REGISTRY = '10.0.0.4:5000/'
+# DOCKER_REGISTRY = 'tmaxcloudck/'
 CONTROLLER_DOCKER_IMAGE_NAME = "virtualrouter-controller"
-CONTROLLER_DOCKER_IMAGE_TAG = "0.0.1"
+CONTROLLER_DOCKER_IMAGE_TAG = "v0.0.2"
 DAEMON_DOCKER_IMAGE_NAME = 'virtualrouter-daemon'
 DAEMON_DOCKER_IMAGE_TAG = "0.0.1"
 
