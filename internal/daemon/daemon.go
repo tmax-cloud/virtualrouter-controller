@@ -108,20 +108,20 @@ func (n *NetworkDaemon) ClearContainer(containerName string) error {
 	return nil
 }
 
-func (n *NetworkDaemon) Sync(containerName string, originVlan *int32, internalIPs []string, externalIPs []string, internalCIDR string) error {
+func (n *NetworkDaemon) Sync(containerName string, originVlan int32, internalIPs []string, externalIPs []string, internalCIDR string) error {
 	var vlanChanged, internalIPsChanged, externalIPsChanged, internalCIDRChanged bool
-	var vlan int
+	var vlan int = int(originVlan)
 
 	if internalCIDR == "" {
 		klog.Warning("internalCIDR is empty. Nothing to be done")
 		return nil
 	}
 
-	if originVlan == nil {
-		vlan = 0
-	} else {
-		vlan = int(*originVlan)
-	}
+	// if originVlan == nil {
+	// 	vlan = 0
+	// } else {
+	// 	vlan = int(originVlan)
+	// }
 
 	if val, exist := n.runnigState[containerName]; !exist {
 		n.runnigState[containerName] = &virtualrouterSpec{}
