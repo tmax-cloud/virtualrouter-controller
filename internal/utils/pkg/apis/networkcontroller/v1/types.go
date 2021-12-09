@@ -34,13 +34,14 @@ type VirtualRouter struct {
 
 // VirtualRouterSpec is the spec for a VirtualRouter resource
 type VirtualRouterSpec struct {
-	DeploymentName string   `json:"deploymentName"`
-	Replicas       *int32   `json:"replicas"`
-	VlanNumber     *int32   `json:"vlanNumber" `
-	InternalIPs    []string `json:"internalIPs"`
-	ExternalIPs    []string `json:"externalIPs"`
-	InternalCIDR   string   `json:"internalCIDR"`
-	Image          string   `json:"image"`
+	DeploymentName string         `json:"deploymentName"`
+	Replicas       *int32         `json:"replicas"`
+	VlanNumber     int32          `json:"vlanNumber" `
+	InternalIPs    []string       `json:"internalIPs"`
+	ExternalIPs    []string       `json:"externalIPs"`
+	InternalCIDR   string         `json:"internalCIDR"`
+	Image          string         `json:"image"`
+	NodeSelector   []NodeSelector `json:"nodeSelector"`
 }
 
 // VirtualRouterStatus is the status for a VirtualRouter resource
@@ -56,4 +57,9 @@ type VirtualRouterList struct {
 	metav1.ListMeta `json:"metadata"`
 
 	Items []VirtualRouter `json:"items"`
+}
+
+type NodeSelector struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
 }

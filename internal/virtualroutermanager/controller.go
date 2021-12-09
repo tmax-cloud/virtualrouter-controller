@@ -426,8 +426,11 @@ func (c *Controller) handleObject(obj interface{}) {
 // the VirtualRouter resource that 'owns' it.
 func newDeployment(newNS string, virtualRouter *samplev1alpha1.VirtualRouter) *appsv1.Deployment {
 	labels := map[string]string{
-		"app":        "virtualrouter",
-		"controller": virtualRouter.Name,
+		"app": "virtualrouterInstance",
+	}
+	nodeSelectorMap := make(map[string]string)
+	for _, nodeSelector := range virtualRouter.Spec.NodeSelector {
+		nodeSelectorMap[nodeSelector.Key] = nodeSelector.Value
 	}
 	// var uuid = uuid.Must(uuid.NewRandom())
 	return &appsv1.Deployment{
@@ -449,6 +452,7 @@ func newDeployment(newNS string, virtualRouter *samplev1alpha1.VirtualRouter) *a
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName: "virtualrouter-sa",
+					NodeSelector:       nodeSelectorMap,
 					Containers: []corev1.Container{
 						{
 							// Name:            "virtualrouter-" + uuid.String(),
