@@ -19,7 +19,8 @@ spec:
       hostPID: true
       containers:
       - name: networkdaemon
-        image: tmaxcloudck/virtualrouter-daemon:0.0.1
+        # image: tmaxcloudck/virtualrouter-daemon:v0.1.0
+        image: 10.0.0.4:5000/virtualrouter-daemon:v0.1.0
         imagePullPolicy: Always
         env:
         - name: internalCIDR
