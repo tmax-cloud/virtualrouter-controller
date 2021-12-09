@@ -432,9 +432,6 @@ func newDeployment(newNS string, virtualRouter *samplev1alpha1.VirtualRouter) *a
 	for _, nodeSelector := range virtualRouter.Spec.NodeSelector {
 		nodeSelectorMap[nodeSelector.Key] = nodeSelector.Value
 	}
-	klog.Info(virtualRouter.Spec)
-	klog.Info(virtualRouter.Spec.NodeSelector)
-	klog.Info(nodeSelectorMap)
 	// var uuid = uuid.Must(uuid.NewRandom())
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
