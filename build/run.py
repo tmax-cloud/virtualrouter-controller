@@ -12,9 +12,9 @@ DAEMON_PKG_NAME = '../cmd/daemon/main.go'
 DOCKER_REGISTRY = '10.0.0.4:5000/'
 # DOCKER_REGISTRY = 'tmaxcloudck/'
 CONTROLLER_DOCKER_IMAGE_NAME = "virtualrouter-controller"
-CONTROLLER_DOCKER_IMAGE_TAG = "v0.1.0"
+CONTROLLER_DOCKER_IMAGE_TAG = "v0.1.1"
 DAEMON_DOCKER_IMAGE_NAME = 'virtualrouter-daemon'
-DAEMON_DOCKER_IMAGE_TAG = "v0.1.0"
+DAEMON_DOCKER_IMAGE_TAG = "v0.1.1"
 
 def subprocess_open(command):
     p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)

@@ -52,9 +52,11 @@ const controllerAgentName = "virtual-router"
 var virtualRouterNamespace = "virtualrouter"
 
 const (
-	SERVICE_ACCOUNT_NAME = "virtualrouter-sa"
-	ROLE_NAME            = "virtualrouter-role"
-	ROLE_BINDING_NAME    = "virtualrouter-rb"
+	SERVICE_ACCOUNT_NAME           string = "virtualrouter-sa"
+	ROLE_NAME                      string = "virtualrouter-role"
+	ROLE_BINDING_NAME              string = "virtualrouter-rb"
+	VIRTUALROUTER_LABEL            string = "virtualrouterInstance"
+	VIRTUALROUTER_DAEMON_FINALIZER string = "virtualrouter/daemon-finalizer"
 )
 
 const (
@@ -426,7 +428,7 @@ func (c *Controller) handleObject(obj interface{}) {
 // the VirtualRouter resource that 'owns' it.
 func newDeployment(newNS string, virtualRouter *samplev1alpha1.VirtualRouter) *appsv1.Deployment {
 	labels := map[string]string{
-		"app": "virtualrouterInstance",
+		"app": VIRTUALROUTER_LABEL,
 	}
 	nodeSelectorMap := make(map[string]string)
 	for _, nodeSelector := range virtualRouter.Spec.NodeSelector {
@@ -437,6 +439,7 @@ func newDeployment(newNS string, virtualRouter *samplev1alpha1.VirtualRouter) *a
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      virtualRouter.Spec.DeploymentName,
 			Namespace: newNS,
+
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(virtualRouter, samplev1alpha1.SchemeGroupVersion.WithKind("VirtualRouter")),
 			},
@@ -449,6 +452,11 @@ func newDeployment(newNS string, virtualRouter *samplev1alpha1.VirtualRouter) *a
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: labels,
+					Annotations: map[string]string{
+						"customresourceName":      virtualRouter.Name,
+						"customresourceNamespace": virtualRouter.Namespace,
+					},
+					Finalizers: []string{VIRTUALROUTER_DAEMON_FINALIZER},
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName: "virtualrouter-sa",
