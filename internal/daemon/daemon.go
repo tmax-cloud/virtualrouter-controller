@@ -20,8 +20,13 @@ type NetworkDaemon struct {
 	crioCfg          *internalCrio.CrioConfig
 	netlinkCfg       *internalNetlink.Config
 	runnigState      map[string]*v1.VirtualRouterSpec
-	pod2containerMap map[string]string
+	pod2containerMap map[string]*containerDesc
 	vlanUse          map[int][]string
+}
+
+type containerDesc struct {
+	containerName string
+	containerID   string
 }
 
 // type virtualrouterSpec struct {
@@ -35,7 +40,7 @@ func NewDaemon(crioCfg *internalCrio.CrioConfig, netlinkCfg *internalNetlink.Con
 	return &NetworkDaemon{
 		crioCfg:          crioCfg,
 		netlinkCfg:       netlinkCfg,
-		pod2containerMap: make(map[string]string),
+		pod2containerMap: make(map[string]*containerDesc),
 		runnigState:      make(map[string]*v1.VirtualRouterSpec),
 		vlanUse:          make(map[int][]string),
 	}
@@ -86,8 +91,8 @@ func (n *NetworkDaemon) ClearAll() error {
 	return nil
 }
 
-func (n *NetworkDaemon) ClearContainer(containerName string) error {
-	klog.InfoS("ClearContainer Start", "ContainerName", containerName)
+func (n *NetworkDaemon) ClearContainer(containerName string, containerID string) error {
+	klog.InfoS("ClearContainer Start", "ContainerID", containerID)
 	if _, exist := n.runnigState[containerName]; !exist {
 		return nil
 	}
@@ -95,12 +100,6 @@ func (n *NetworkDaemon) ClearContainer(containerName string) error {
 		if err := n.AssignVlan(containerName, 0, int(n.runnigState[containerName].VlanNumber)); err != nil {
 			return err
 		}
-	}
-
-	containerID := internalCrio.GetContainerIDFromContainerName(containerName, n.crioCfg)
-	if containerID == "" {
-		klog.Errorf("There is no running container with ContainerName: %s", containerName)
-		return fmt.Errorf("no running container found")
 	}
 
 	if err := internalNetlink.ClearVethInterface(containerID[:7], true); err != nil {
@@ -121,10 +120,19 @@ func (n *NetworkDaemon) ClearContainer(containerName string) error {
 func (n *NetworkDaemon) AttachingPod(podName string, virtualrouter *v1.VirtualRouter) error {
 	var containerName string
 	var err error
-	if name, exist := n.pod2containerMap[podName]; exist {
-		containerName = name
+	if desc, exist := n.pod2containerMap[podName]; exist {
+		containerName = desc.containerName
 	} else {
-		n.pod2containerMap[podName] = virtualrouter.Name
+		containerID := internalCrio.GetContainerIDFromContainerName(virtualrouter.Name, n.crioCfg)
+		if containerID == "" {
+			klog.Errorf("There is no running container with ContainerName: %s", containerName)
+			return fmt.Errorf("no running container found")
+		}
+		n.pod2containerMap[podName] = &containerDesc{
+			containerName: virtualrouter.Name,
+			containerID:   containerID,
+		}
+
 		containerName = virtualrouter.Name
 	}
 	defer func() {
@@ -155,19 +163,31 @@ func (n *NetworkDaemon) AttachingPod(podName string, virtualrouter *v1.VirtualRo
 }
 
 func (n *NetworkDaemon) DettachingPod(podName string) error {
+	var containerID string
 	var containerName string
-	if name, exist := n.pod2containerMap[podName]; exist {
-		containerName = name
+	if desc, exist := n.pod2containerMap[podName]; exist {
+		containerName = desc.containerName
+		containerID = desc.containerID
 	} else {
 		return nil
 	}
 
-	n.ClearContainer(containerName)
+	n.ClearContainer(containerName, containerID)
 	delete(n.pod2containerMap, podName)
 	return nil
 }
 
 func (n *NetworkDaemon) Sync(containerName string, virtualrouterSpec v1.VirtualRouterSpec) error {
+	var podExist bool = false
+	for _, descs := range n.pod2containerMap {
+		if descs.containerName == containerName {
+			podExist = true
+			break
+		}
+	}
+	if !podExist {
+		return nil
+	}
 	var vlanChanged, internalIPChanged, externalIPChanged, internalNetmaskChanged, externalNetmaskChanged, gatewayIPChanged bool
 	var vlan int = int(virtualrouterSpec.VlanNumber)
 

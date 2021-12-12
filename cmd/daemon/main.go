@@ -36,7 +36,6 @@ func main() {
 	if nodeName == nil {
 		klog.Fatalf("Error node Name is empty")
 	}
-	klog.Info(*nodeName)
 	klog.InitFlags(nil)
 	flag.Parse()
 
@@ -96,18 +95,6 @@ func main() {
 		InternalBridgeName:          "intbr",
 		ExternalBridgeName:          "extbr",
 	})
-
-	// if err := d.Initialize(); err != nil {
-	// 	klog.ErrorS(err, "Daemon Initialization failed")
-	// 	return
-	// }
-
-	// defer func(d *daemon.NetworkDaemon) {
-	// 	klog.Info("defer called")
-	// 	if err := d.ClearAll(); err != nil {
-	// 		klog.ErrorS(err, "Daemon ClearAll failed")
-	// 	}
-	// }(d)
 
 	err = d.Start(stopSignalCh, stopCh)
 	if err != nil {
