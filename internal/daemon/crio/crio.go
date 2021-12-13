@@ -403,7 +403,6 @@ func getConnection(endPoints []string) (*grpc.ClientConn, error) {
 	var conn *grpc.ClientConn
 
 	for indx, endPoint := range endPoints {
-		klog.Info("connect using endpoint '%s' with '%s' timeout", endPoint, Timeout)
 		addr, dialer, err := GetAddressAndDialer(endPoint)
 		if err != nil {
 			if indx == endPointsLen-1 {
@@ -413,7 +412,6 @@ func getConnection(endPoints []string) (*grpc.ClientConn, error) {
 			continue
 		}
 
-		// addr = "unix:///var/run/crio/crio.sock"
 		fmt.Println(Timeout)
 
 		ctx, cancel := context.WithTimeout(context.Background(), Timeout)
@@ -425,20 +423,6 @@ func getConnection(endPoints []string) (*grpc.ClientConn, error) {
 			return nil, err
 		}
 
-		klog.InfoS("getAddressAndDialer done", "addr", addr, "dialer", dialer, "Timeout", Timeout, "isSet", RuntimeEndpointIsSet)
-		// conn, err = grpc.Dial(addr, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(Timeout), grpc.WithContextDialer(dialer))
-		// // conn, err = grpc.Dial(addr, grpc.WithInsecure(), grpc.WithContextDialer(dialer))
-		// klog.Info("grpc dial done")
-		// if err != nil {
-		// 	errMsg := errors.Wrapf(err, "connect endpoint '%s', make sure you are running as root and the endpoint has been started", endPoint)
-		// 	if indx == endPointsLen-1 {
-		// 		return nil, errMsg
-		// 	}
-		// 	klog.Error(errMsg)
-		// } else {
-		// 	klog.Info("connected successfully using endpoint: %s", endPoint)
-		// 	break
-		// }
 	}
 	return conn, nil
 }
@@ -447,8 +431,7 @@ func getRuntimeClientConnection(cfg *CrioConfig) (*grpc.ClientConn, error) {
 	if cfg.RuntimeEndpointIsSet && cfg.RuntimeEndpoint == "" {
 		return nil, fmt.Errorf("--runtime-endpoint is not set")
 	}
-	klog.Info("get runtime connection")
-	// If no EP set then use the default endpoint types
+
 	if !cfg.RuntimeEndpointIsSet {
 		klog.Warningf("runtime connect using default endpoints: %v. "+
 			"As the default settings are now deprecated, you should set the "+
@@ -469,8 +452,7 @@ func getImageClientConnection() (*grpc.ClientConn, error) {
 		ImageEndpoint = RuntimeEndpoint
 		ImageEndpointIsSet = RuntimeEndpointIsSet
 	}
-	klog.Info("get image connection")
-	// If no EP set then use the default endpoint types
+
 	if !ImageEndpointIsSet {
 		klog.Warningf("image connect using default endpoints: %v. "+
 			"As the default settings are now deprecated, you should set the "+
@@ -482,16 +464,6 @@ func getImageClientConnection() (*grpc.ClientConn, error) {
 	}
 	return getConnection([]string{ImageEndpoint})
 }
-
-// func getRuntimeClient() (runtimeapi.RuntimeServiceClient, *grpc.ClientConn, error) {
-// 	// Set up a connection to the server.
-// 	conn, err := getRuntimeClientConnection()
-// 	if err != nil {
-// 		return nil, nil, errors.Wrap(err, "connect")
-// 	}
-// 	runtimeClient := runtimeapi.NewRuntimeServiceClient(conn)
-// 	return runtimeClient, conn, nil
-// }
 
 func getImageClient() (runtimeapi.ImageServiceClient, *grpc.ClientConn, error) {
 	// Set up a connection to the server.
@@ -618,7 +590,6 @@ func ListContainers(runtimeClient runtimeapi.RuntimeServiceClient, imageClient r
 	request := &runtimeapi.ListContainersRequest{
 		Filter: filter,
 	}
-	klog.Info("ListContainerRequest: %v", request)
 
 	r, err := runtimeClient.ListContainers(context.Background(), request)
 	klog.Info("ListContainerResponse: %v", r)
@@ -646,25 +617,3 @@ func ListContainers(runtimeClient runtimeapi.RuntimeServiceClient, imageClient r
 
 	return nil
 }
-
-// type Service interface {
-// 	v1.RuntimeServiceServer
-// 	v1.ImageServiceServer
-// }
-
-// type service struct {
-// 	server *crioServer.Server
-// }
-
-// func Register(grpcServer *grpc.Server, server *crioServer.Server) {
-// 	crioServer.New(context.TODO(), server.Config())
-// 	s := &service{server}
-// 	v1.RegisterRuntimeServiceServer(grpcServer, s)
-// 	v1.RegisterImageServiceServer(grpcServer, s)
-// }
-// func CrioClient() {
-// 	var opts []grpc.ServerOption
-// 	grpc.NewServer(opts...)
-// 	c := new(v1.Container)
-// 	c.Descriptor()
-// }

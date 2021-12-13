@@ -23,7 +23,6 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	rbac_v1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -49,12 +48,12 @@ import (
 
 const controllerAgentName = "virtual-router"
 
-var virtualRouterNamespace = "virtualrouter"
-
 const (
-	SERVICE_ACCOUNT_NAME = "virtualrouter-sa"
-	ROLE_NAME            = "virtualrouter-role"
-	ROLE_BINDING_NAME    = "virtualrouter-rb"
+	SERVICE_ACCOUNT_NAME           string = "virtualrouter-sa"
+	ROLE_NAME                      string = "virtualrouter-role"
+	ROLE_BINDING_NAME              string = "virtualrouter-rb"
+	VIRTUALROUTER_LABEL            string = "virtualrouterInstance"
+	VIRTUALROUTER_DAEMON_FINALIZER string = "virtualrouter/daemon-finalizer"
 )
 
 const (
@@ -426,7 +425,7 @@ func (c *Controller) handleObject(obj interface{}) {
 // the VirtualRouter resource that 'owns' it.
 func newDeployment(newNS string, virtualRouter *samplev1alpha1.VirtualRouter) *appsv1.Deployment {
 	labels := map[string]string{
-		"app": "virtualrouterInstance",
+		"app": VIRTUALROUTER_LABEL,
 	}
 	nodeSelectorMap := make(map[string]string)
 	for _, nodeSelector := range virtualRouter.Spec.NodeSelector {
@@ -437,6 +436,7 @@ func newDeployment(newNS string, virtualRouter *samplev1alpha1.VirtualRouter) *a
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      virtualRouter.Spec.DeploymentName,
 			Namespace: newNS,
+
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(virtualRouter, samplev1alpha1.SchemeGroupVersion.WithKind("VirtualRouter")),
 			},
@@ -449,6 +449,11 @@ func newDeployment(newNS string, virtualRouter *samplev1alpha1.VirtualRouter) *a
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: labels,
+					Annotations: map[string]string{
+						"customresourceName":      virtualRouter.Name,
+						"customresourceNamespace": virtualRouter.Namespace,
+					},
+					Finalizers: []string{VIRTUALROUTER_DAEMON_FINALIZER},
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName: "virtualrouter-sa",
@@ -460,18 +465,18 @@ func newDeployment(newNS string, virtualRouter *samplev1alpha1.VirtualRouter) *a
 							Image: virtualRouter.Spec.Image,
 							// Image:           "tmaxcloudck/virtualrouter:0.0.1",
 							ImagePullPolicy: "Always",
-							Env: []v1.EnvVar{
+							Env: []corev1.EnvVar{
 								{
 									Name:  "POD_NAMESPACE",
 									Value: newNS,
 								},
 							},
-							SecurityContext: &v1.SecurityContext{
-								Capabilities: &v1.Capabilities{
-									Add: []v1.Capability{
-										v1.Capability("NET_RAW"),
-										v1.Capability("NET_ADMIN"),
-										v1.Capability("SYS_ADMIN"),
+							SecurityContext: &corev1.SecurityContext{
+								Capabilities: &corev1.Capabilities{
+									Add: []corev1.Capability{
+										corev1.Capability("NET_RAW"),
+										corev1.Capability("NET_ADMIN"),
+										corev1.Capability("SYS_ADMIN"),
 									},
 								},
 								Privileged: func(b bool) *bool {
@@ -493,7 +498,7 @@ func (c *Controller) ensureVirtualRouterSA(newNS string, virtualRouter *samplev1
 			klog.Error(err)
 			return err
 		}
-		_, err = c.kubeclientset.CoreV1().ServiceAccounts(newNS).Create(context.TODO(), &v1.ServiceAccount{
+		_, err = c.kubeclientset.CoreV1().ServiceAccounts(newNS).Create(context.TODO(), &corev1.ServiceAccount{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      SERVICE_ACCOUNT_NAME,
 				Namespace: newNS,
@@ -595,7 +600,7 @@ func (c *Controller) ensureVirtualRouterNamespace(newNS string, virtualRouter *s
 			klog.Error(err)
 			return err
 		}
-		_, err := c.kubeclientset.CoreV1().Namespaces().Create(context.TODO(), &v1.Namespace{
+		_, err := c.kubeclientset.CoreV1().Namespaces().Create(context.TODO(), &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: newNS,
 				OwnerReferences: []metav1.OwnerReference{
