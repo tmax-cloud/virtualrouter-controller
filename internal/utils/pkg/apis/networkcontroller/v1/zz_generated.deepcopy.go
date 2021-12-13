@@ -110,21 +110,12 @@ func (in *VirtualRouterSpec) DeepCopyInto(out *VirtualRouterSpec) {
 		*out = new(int32)
 		**out = **in
 	}
-	if in.InternalIPs != nil {
-		in, out := &in.InternalIPs, &out.InternalIPs
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	}
-	if in.ExternalIPs != nil {
-		in, out := &in.ExternalIPs, &out.ExternalIPs
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	}
 	if in.NodeSelector != nil {
 		in, out := &in.NodeSelector, &out.NodeSelector
 		*out = make([]NodeSelector, len(*in))
 		copy(*out, *in)
 	}
+	in.Affinity.DeepCopyInto(&out.Affinity)
 	return
 }
 

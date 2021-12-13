@@ -20,16 +20,16 @@ spec:
           properties:
             vlanNumber:
               type: integer
-            internalCIDR:
+            externalIP:
               type: string
-            internalIPs:
-              type: array
-              items:
-                type: string
-            externalIPs:
-              type: array
-              items:
-                type: string
+            externalNetmask:
+              type: string
+            internalIP:
+              type: string
+            internalNetmask:
+              type: string
+            gatewayIP:
+              type: string
             replicas:
               type: integer
               minimum: 1
@@ -48,6 +48,82 @@ spec:
                 required:
                 - key
                 - value
+            affinity:
+              type: object
+              properties:
+                nodeAffinity:
+                  type: object
+                  properties:
+                    requiredDuringSchedulingIgnoredDuringExecution:
+                      type: object
+                      properties:
+                        nodeSelectorTerms:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              matchExpressions:
+                                type: array
+                                items:
+                                  type: object
+                                  properties:
+                                    key:
+                                      type: string
+                                    operator:
+                                      type: string
+                                    values:
+                                      type: array
+                                      items:
+                                        type: string
+                              matchFields:
+                                type: array
+                                items:
+                                  type: object
+                                  properties:
+                                    key:
+                                      type: string
+                                    operator:
+                                      type: string
+                                    values:
+                                      type: array
+                                      items:
+                                        type: string          
+                    preferredDuringSchedulingIgnoredDuringExecution:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          weight:
+                            type: integer
+                          preference:
+                            type: object
+                            properties:
+                              matchExpressions:
+                                type: array
+                                items:
+                                  type: object
+                                  properties:
+                                    key:
+                                      type: string
+                                    operator:
+                                      type: string
+                                    values:
+                                      type: array
+                                      items:
+                                        type: string  
+                              matchFields:
+                                type: array
+                                items:
+                                  type: object
+                                  properties:
+                                    key:
+                                      type: string
+                                    operator:
+                                      type: string
+                                    values:
+                                      type: array
+                                      items:
+                                        type: string
           required:
           - replicas
           - image

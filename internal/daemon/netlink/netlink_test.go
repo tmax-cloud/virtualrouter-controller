@@ -6,10 +6,6 @@ import (
 	internalNetlink "github.com/tmax-cloud/virtualrouter-controller/internal/daemon/netlink"
 )
 
-func TestDD(t *testing.T) {
-	internalNetlink.DD()
-}
-
 func TestPBR(t *testing.T) {
 	internalNetlink.PBR()
 }
