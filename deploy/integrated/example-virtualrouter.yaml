@@ -15,7 +15,30 @@ spec:
   internalCIDR: "10.10.10.0/24"
   image: 10.0.0.4:5000/virtualrouter:v0.0.2
   nodeSelector:
-    - key: app
-      value: test
-
+  - key: app
+    value: test
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: requiredkey
+            values: 
+            - nfv
+            operator: In
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        preference:
+          matchExpressions:
+          - key: nfvnode
+            values:
+            - master
+            operator: In
+      - weight: 10
+        preference:
+          matchExpressions:
+          - key: nfvnode
+            values:
+            - slave
+            operator: In
 

@@ -19,8 +19,7 @@ spec:
       serviceAccount: virtualrouter-controller-sa
       containers:
       - name: controller
-        # image: tmaxcloudck/virtualrouter-controller:v0.1.0
-        image: 10.0.0.4:5000/virtualrouter-controller:v0.1.1
+        image: tmaxcloudck/virtualrouter-controller:v0.1.2
         imagePullPolicy: Always
         env:
         - name: POD_NAMESPACE
