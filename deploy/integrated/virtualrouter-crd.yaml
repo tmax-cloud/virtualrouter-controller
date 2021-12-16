@@ -48,6 +48,82 @@ spec:
                 required:
                 - key
                 - value
+            affinity:
+              type: object
+              properties:
+                nodeAffinity:
+                  type: object
+                  properties:
+                    requiredDuringSchedulingIgnoredDuringExecution:
+                      type: object
+                      properties:
+                        nodeSelectorTerms:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              matchExpressions:
+                                type: array
+                                items:
+                                  type: object
+                                  properties:
+                                    key:
+                                      type: string
+                                    operator:
+                                      type: string
+                                    values:
+                                      type: array
+                                      items:
+                                        type: string
+                              matchFields:
+                                type: array
+                                items:
+                                  type: object
+                                  properties:
+                                    key:
+                                      type: string
+                                    operator:
+                                      type: string
+                                    values:
+                                      type: array
+                                      items:
+                                        type: string          
+                    preferredDuringSchedulingIgnoredDuringExecution:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          weight:
+                            type: integer
+                          preference:
+                            type: object
+                            properties:
+                              matchExpressions:
+                                type: array
+                                items:
+                                  type: object
+                                  properties:
+                                    key:
+                                      type: string
+                                    operator:
+                                      type: string
+                                    values:
+                                      type: array
+                                      items:
+                                        type: string  
+                              matchFields:
+                                type: array
+                                items:
+                                  type: object
+                                  properties:
+                                    key:
+                                      type: string
+                                    operator:
+                                      type: string
+                                    values:
+                                      type: array
+                                      items:
+                                        type: string
           required:
           - replicas
           - image

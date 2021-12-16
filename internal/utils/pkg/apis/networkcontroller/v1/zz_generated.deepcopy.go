@@ -115,6 +115,7 @@ func (in *VirtualRouterSpec) DeepCopyInto(out *VirtualRouterSpec) {
 		*out = make([]NodeSelector, len(*in))
 		copy(*out, *in)
 	}
+	in.Affinity.DeepCopyInto(&out.Affinity)
 	return
 }
 

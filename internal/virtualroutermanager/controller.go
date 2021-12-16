@@ -456,6 +456,7 @@ func newDeployment(newNS string, virtualRouter *samplev1alpha1.VirtualRouter) *a
 					Finalizers: []string{VIRTUALROUTER_DAEMON_FINALIZER},
 				},
 				Spec: corev1.PodSpec{
+					Affinity:           &virtualRouter.Spec.Affinity,
 					ServiceAccountName: "virtualrouter-sa",
 					NodeSelector:       nodeSelectorMap,
 					Containers: []corev1.Container{
