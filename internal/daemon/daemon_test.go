@@ -21,12 +21,12 @@ func TestDaemonInitialize(t *testing.T) {
 			ImageEndpointIsSet:   true,
 			Timeout:              time.Duration(2000000000),
 		}, &netlink.Config{
-			InternalIPCIDR:        "10.0.0.0/24",
-			ExternalIPCIDR:        "192.168.9.0/24",
-			InternalInterfaceName: "intif",
-			ExternalInterfaceName: "extif",
-			InternalBridgeName:    "intbr",
-			ExternalBridgeName:    "extbr",
+			InternalIPCIDR:           "10.0.0.0/24",
+			ExternalIPCIDR:           "192.168.9.0/24",
+			NewInternalInterfaceName: "intif",
+			NewExternalInterfaceName: "extif",
+			InternalBridgeName:       "intbr",
+			ExternalBridgeName:       "extbr",
 		})
 	if err := d.Initialize(); err != nil {
 		fmt.Errorf("Error: %+v", err)

@@ -20,22 +20,34 @@ spec:
           properties:
             vlanNumber:
               type: integer
-            internalCIDR:
+            externalIP:
               type: string
-            internalIPs:
-              type: array
-              items:
-                type: string
-            externalIPs:
-              type: array
-              items:
-                type: string
+            externalNetmask:
+              type: string
+            internalIP:
+              type: string
+            internalNetmask:
+              type: string
+            gatewayIP:
+              type: string
             replicas:
               type: integer
               minimum: 1
               maximum: 10
             image:
               type: string
+            nodeSelector:
+              type: array
+              items:
+                type: object
+                properties:
+                  key:
+                    type: string
+                  value:
+                    type: string
+                required:
+                - key
+                - value
           required:
           - replicas
           - image
