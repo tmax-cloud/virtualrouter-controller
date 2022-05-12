@@ -270,11 +270,14 @@
           namespace: virtualrouter
         spec:
           rules:
-          - loadBalancerIP: 192.168.9.133  # VIP
+          - loadBalancerIP: 192.168.9.133  # LB IP
+            loadBalancerPort: 10000        # LB port
             backendIPs:
             - backendIP: 10.10.10.3        # target1 IP
+              backendPort: 20000           # target1 Port
               weight: 40
             - backendIP: 10.10.10.4        # target2 IP
+              backendPort: 20000           # target2 Port
               weight: 100
         ```
 
