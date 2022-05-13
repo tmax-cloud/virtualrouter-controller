@@ -13,7 +13,7 @@ spec:
   externalNetmask: 255.255.255.0
   gatewayIP: 192.168.8.2
   internalCIDR: "10.10.10.0/24"
-  image: 10.0.0.4:5000/virtualrouter:v0.0.2
+  image: 10.0.0.4:5000/virtualrouter:v0.2.0
   nodeSelector:
   - key: app
     value: test
