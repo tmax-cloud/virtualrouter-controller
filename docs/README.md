@@ -46,7 +46,7 @@
     ```bash
     $ curl https://raw.githubusercontent.com/tmax-cloud/virtualrouter-controller/main/deploy/integrated/namespace.yaml > namespace.yaml
     $ curl https://raw.githubusercontent.com/tmax-cloud/virtualrouter-controller/main/deploy/integrated/role.yaml > controller_role.yaml
-    $ curl https://raw.githubusercontent.com/tmax-cloud/virtualrouter-controller/main/deploy/integrated/virtaulrouter-crd.yaml > virtualrouter-crd.yaml
+    $ curl https://raw.githubusercontent.com/tmax-cloud/virtualrouter-controller/main/deploy/integrated/virtualrouter-crd.yaml > virtualrouter-crd.yaml
     ```
 
     * NFV Function 사용을 위한 NFV CRD와 Virtualrouter role에 대한 yaml을 다운로드한다. 
