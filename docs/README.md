@@ -38,23 +38,23 @@
 
     * deploy를 위한 virtualrouter controller & daemon yaml을 다운로드한다. 
     ```bash
-    $ curl https://github.com/tmax-cloud/virtualrouter-controller/deploy/controller/deploy.yaml > controller_deploy.yaml
-    $ curl https://github.com/tmax-cloud/virtualrouter-controller/deploy/daemon/deploy.yaml > daemon_deploy.yaml
+    $ curl https://raw.githubusercontent.com/tmax-cloud/virtualrouter-controller/main/deploy/controller/deploy.yaml > controller_deploy.yaml
+    $ curl https://raw.githubusercontent.com/tmax-cloud/virtualrouter-controller/main/deploy/daemon/deploy.yaml > daemon_deploy.yaml
     ```
 
     * deploy를 위한 virtualrouter CRD와 role, namespace에 대한 yaml을 다운로드한다. 
     ```bash
-    $ curl https://github.com/tmax-cloud/virtualrouter-controller/deploy/integrated/namespace.yaml > namespace.yaml
-    $ curl https://github.com/tmax-cloud/virtualrouter-controller/deploy/integrated/role.yaml > controller_role.yaml
-    $ curl https://github.com/tmax-cloud/virtualrouter-controller/deploy/integrated/virtaulrouter-crd.yaml > virtualrouter-crd.yaml
+    $ curl https://raw.githubusercontent.com/tmax-cloud/virtualrouter-controller/main/deploy/integrated/namespace.yaml > namespace.yaml
+    $ curl https://raw.githubusercontent.com/tmax-cloud/virtualrouter-controller/main/deploy/integrated/role.yaml > controller_role.yaml
+    $ curl https://raw.githubusercontent.com/tmax-cloud/virtualrouter-controller/main/deploy/integrated/virtualrouter-crd.yaml > virtualrouter-crd.yaml
     ```
 
     * NFV Function 사용을 위한 NFV CRD와 Virtualrouter role에 대한 yaml을 다운로드한다. 
     ```bash
-    $ curl https://github.com/tmax-cloud/virtualrouter/deploy/policy.yaml > virtualrouter-policy.yaml
-    $ curl https://github.com/tmax-cloud/virtualrouter/deploy/natruleCRD.yaml > natruleCRD.yaml
-    $ curl https://github.com/tmax-cloud/virtualrouter/deploy/firewallCRD.yaml > firewallCRD.yaml
-    $ curl https://github.com/tmax-cloud/virtualrouter/deploy/loadbalancerCRD.yaml > loadbalancerCRD.yaml
+    $ curl https://raw.githubusercontent.com/tmax-cloud/virtualrouter/main/deploy/policy.yaml > virtualrouter-policy.yaml
+    $ curl https://raw.githubusercontent.com/tmax-cloud/virtualrouter/main/deploy/natruleCRD.yaml > natruleCRD.yaml
+    $ curl https://raw.githubusercontent.com/tmax-cloud/virtualrouter/main/deploy/firewallCRD.yaml > firewallCRD.yaml
+    $ curl https://raw.githubusercontent.com/tmax-cloud/virtualrouter/main/deploy/loadbalancerCRD.yaml > loadbalancerCRD.yaml
     ```
 
 
@@ -270,11 +270,14 @@
           namespace: virtualrouter
         spec:
           rules:
-          - loadBalancerIP: 192.168.9.133  # VIP
+          - loadBalancerIP: 192.168.9.133  # LB IP
+            loadBalancerPort: 10000        # LB port
             backendIPs:
             - backendIP: 10.10.10.3        # target1 IP
+              backendPort: 20000           # target1 Port
               weight: 40
             - backendIP: 10.10.10.4        # target2 IP
+              backendPort: 20000           # target2 Port
               weight: 100
         ```
 
