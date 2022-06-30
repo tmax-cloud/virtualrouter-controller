@@ -194,7 +194,15 @@ func (c *Controller) processNextWorkItem() bool {
 
 	if err := c.syncHandler(obj); err != nil {
 		c.workqueue.AddRateLimited(obj)
-		klog.Errorf("error syncing '%s': %s, requeuing", obj.(string), err.Error())
+		var objName string
+		switch key := obj.(type) {
+		case podKey:
+			objName = (string)(podKey(key))
+		case virtualrouterKey:
+			objName = (string)(virtualrouterKey(key))
+		}
+		klog.Errorf("error syncing '%s': %s, requeuing", objName, err.Error())
+
 	} else {
 		c.workqueue.Forget(obj)
 	}
