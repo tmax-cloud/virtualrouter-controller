@@ -101,21 +101,29 @@
 
 <h2 id="step1"> Step 1. VirtualRouter의 네트워크 대역 설정 </h2>
 
-* 목적 : `VirtualRouter에서 사용할 내부&외부 대역 설정 (VirtualRouter를 사용할 호스트의 내부&외부 대역 사용)`
-* 생성 순서: daemon_deploy.yaml의 env 값에 Virtual Router를 사용할 Host의 내부&외부 대역을 기재. 
-* <b>Linux Bridge를 생성하고 연결할 Interface를 찾기 위한 설정</b>
-* <b>Pod 대역이 사용할 대역과 무관함! </b>
-* <b>VirtualRouter Instance를 사용할 모든 Host는 동일한 내부 외부 대역을 가져야함.</b>
-* 예제 :
-    Host가 외부망으로 192.168.9.0/24 대역을 사용하고 내부망으로 10.0.0.0/24 대역을 사용하는경우([example daemon yaml](../deploy/daemon/deploy.yaml))
-    ```yaml
-    env:
-        - name: internalCIDR
-          value: "10.0.0.0/24"
-        - name: externalCIDR
-          value: "192.168.9.0/24"
-    ```
-    
+* 목적: `VirtualRouter에서 사용할 내부 & 외부 대역 설정`
+	* Linux Bridge를 생성하고 연결할 Interface를 찾기 위한 설정
+	* Pod 대역이 사용할 대역과 무관함!
+
+* <b>Daemon version v0.1.0 이상을 사용할 경우</b>
+	* Virtual Router를 띄울 K8S node에 annotation 추가
+	* 예제 :
+	    ```bash
+	    kubectl annotate nodes {node 이름} externalInterface={external용 Interface Name}
+	    kubectl annotate nodes {node 이름} internalInterface={internal용 Interface Name}
+	    ```
+* <b>Daemon version v0.1.0 이하를 사용할 경우</b>
+	* 생성 순서: daemon_deploy.yaml의 env 값에 Virtual Router를 사용할 Host의 내부&외부 대역을 기재. 
+	* 예제 :
+	    Host가 외부망으로 192.168.9.0/24 대역을 사용하고 내부망으로 10.0.0.0/24 대역을 사용하는경우([example daemon yaml](../deploy/daemon/deploy.yaml))
+	    ```yaml
+	    env:
+		- name: internalCIDR
+		  value: "10.0.0.0/24"
+		- name: externalCIDR
+		  value: "192.168.9.0/24"
+  	  ```
+
 
 <h2 id="step2"> Step 2. VirtualRouter Controller & Daemon 설치 </h2>
 
