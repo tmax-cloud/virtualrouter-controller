@@ -102,6 +102,7 @@
 
 <h2 id="step1"> Step 1. VirtualRouter Controller&Daemon을 설치하기 위한 초기 설정 </h2>
 
+
 * 목적 : `VirtualRouter에서 사용할 내부&외부용 NIC에 대한설정`
 * 순서 : daemon을 deploy할 노드에 label 추가 및 해당 노드의 NIC 이름을 annotation 으로 설정
 * 예제 :
