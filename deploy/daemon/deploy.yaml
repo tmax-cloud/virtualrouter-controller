@@ -4,15 +4,15 @@ metadata:
   name: networkdaemon
   namespace: virtualrouter
   labels:
-    app: daemon
+    app: networkdaemon
 spec:
   selector:
     matchLabels:
-      name: networkdaemon
+      app: networkdaemon
   template:
     metadata:
       labels:
-        name: networkdaemon
+        app: networkdaemon
     spec:
       serviceAccount: virtualrouter-controller-sa
       hostNetwork: true
