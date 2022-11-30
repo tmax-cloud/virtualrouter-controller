@@ -11,33 +11,33 @@ spec:
   internalNetmask: 255.255.255.0
   externalIP: 192.168.8.153
   externalNetmask: 255.255.255.0
-  gatewayIP: 192.168.8.2
-  image: 10.0.0.4:5000/virtualrouter:v0.2.0
-  nodeSelector:
-  - key: app
-    value: test
+  gatewayIP: 192.168.8.1
+  image: tmaxcloudck/virtualrouter:vx.y.z
+  # nodeSelector:
+  # - key: app
+  #   value: test
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
         nodeSelectorTerms:
         - matchExpressions:
-          - key: requiredkey
-            values: 
-            - nfv
+          - key: virtualrouter/daemon
             operator: In
-      preferredDuringSchedulingIgnoredDuringExecution:
-      - weight: 100
-        preference:
-          matchExpressions:
-          - key: nfvnode
             values:
-            - master
-            operator: In
-      - weight: 10
-        preference:
-          matchExpressions:
-          - key: nfvnode
-            values:
-            - slave
-            operator: In
+              - deploy
+      # preferredDuringSchedulingIgnoredDuringExecution:
+      # - weight: 100
+      #   preference:
+      #     matchExpressions:
+      #     - key: nfvnode
+      #       values:
+      #       - master
+      #       operator: In
+      # - weight: 10
+      #   preference:
+      #     matchExpressions:
+      #     - key: nfvnode
+      #       values:
+      #       - slave
+      #       operator: In
 
