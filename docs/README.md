@@ -6,23 +6,23 @@
 * Tenant 마다의 독립적인 NAT, LB, FW 등의 NFV 기능을 제공
 
 ## 구성 요소 및 버전
-* VirtualRouter/Controller([tmaxcloudck/virtualrouter-controller:0.0.1](https://hub.docker.com/repository/docker/tmaxcloudck/virtualrouter-controller))
-* VirtualRouter/Daemon([tmaxcloudck/virtualrouter-daemon:0.0.1](https://hub.docker.com/repository/docker/tmaxcloudck/virtualrouter-daemon))
-* VirtualRouter([tmaxcloudck/virtualrouter:0.0.1](https://hub.docker.com/repository/docker/tmaxcloudck/virtualrouter))
-
+* VirtualRouter/Controller([tmaxcloudck/virtualrouter-controller](https://hub.docker.com/repository/docker/tmaxcloudck/virtualrouter-controller))
+* VirtualRouter/Daemon([tmaxcloudck/virtualrouter-daemon](https://hub.docker.com/repository/docker/tmaxcloudck/virtualrouter-daemon))
+* VirtualRouter([tmaxcloudck/virtualrouter](https://hub.docker.com/repository/docker/tmaxcloudck/virtualrouter))
+* </b>위 링크를 통해 현재 제공중인 버전을 반드시 확인하고 사용</b>
 
 ## 폐쇄망 설치 가이드
 설치를 진행하기 전 아래의 과정을 통해 필요한 이미지 및 yaml 파일을 준비한다.
-1. **폐쇄망에서 설치하는 경우** 사용하는 image repository에 virtual router 설치 시 필요한 이미지를 push한다. 
+1. **폐쇄망에서 설치하는 경우** 사용하는 image repository에 필요 버전을 확인하여 virtual router 설치 시 필요한 이미지를 push한다. 
 
-    * 작업 디렉토리 생성 및 환경 설정
+    * 작업 디렉토리 생성 및 환경 설정 (version 확인 후 변경 vx.y.z, registry 주소 변경 a.b.c.d:e)
     ```bash
     $ mkdir -p ~/virtualrouter-install
     $ export VIRTUALROUTER_HOME=~/virtualrouter-install
-    $ export VIRTUALROUTER_CONTROLLER_VERSION=0.0.1
-    $ export VIRTUALROUTER_DAEMON_VERSION=0.0.1
-    $ export VIRTUALROUTER_VERSION=0.0.1
-    $ export REGISTRY=172.22.8.106:5000
+    $ export VIRTUALROUTER_CONTROLLER_VERSION=vx.y.z
+    $ export VIRTUALROUTER_DAEMON_VERSION=vx.y.z
+    $ export VIRTUALROUTER_VERSION=vx.y.z
+    $ export REGISTRY=a.b.c.d:e
     $ cd $VIRTUALROUTER_HOME
     ```
 
@@ -38,20 +38,19 @@
 
     * deploy를 위한 virtualrouter controller & daemon yaml을 다운로드한다. 
     ```bash
-    $ curl https://raw.githubusercontent.com/tmax-cloud/virtualrouter-controller/main/deploy/controller/deploy.yaml > controller_deploy.yaml
-    $ curl https://raw.githubusercontent.com/tmax-cloud/virtualrouter-controller/main/deploy/daemon/deploy.yaml > daemon_deploy.yaml
+    $ curl https://raw.githubusercontent.com/tmax-cloud/virtualrouter-controller/main/deploy/controller/controller_deploy.yaml > controller_deploy.yaml
+    $ curl https://raw.githubusercontent.com/tmax-cloud/virtualrouter-controller/main/deploy/daemon/daemon_deploy.yaml > daemon_deploy.yaml
     ```
 
     * deploy를 위한 virtualrouter CRD와 role, namespace에 대한 yaml을 다운로드한다. 
     ```bash
     $ curl https://raw.githubusercontent.com/tmax-cloud/virtualrouter-controller/main/deploy/integrated/namespace.yaml > namespace.yaml
-    $ curl https://raw.githubusercontent.com/tmax-cloud/virtualrouter-controller/main/deploy/integrated/role.yaml > controller_role.yaml
+    $ curl https://raw.githubusercontent.com/tmax-cloud/virtualrouter-controller/main/deploy/integrated/controller_role.yaml > controller_role.yaml
     $ curl https://raw.githubusercontent.com/tmax-cloud/virtualrouter-controller/main/deploy/integrated/virtualrouter-crd.yaml > virtualrouter-crd.yaml
     ```
 
     * NFV Function 사용을 위한 NFV CRD와 Virtualrouter role에 대한 yaml을 다운로드한다. 
     ```bash
-    $ curl https://raw.githubusercontent.com/tmax-cloud/virtualrouter/main/deploy/policy.yaml > virtualrouter-policy.yaml
     $ curl https://raw.githubusercontent.com/tmax-cloud/virtualrouter/main/deploy/natruleCRD.yaml > natruleCRD.yaml
     $ curl https://raw.githubusercontent.com/tmax-cloud/virtualrouter/main/deploy/firewallCRD.yaml > firewallCRD.yaml
     $ curl https://raw.githubusercontent.com/tmax-cloud/virtualrouter/main/deploy/loadbalancerCRD.yaml > loadbalancerCRD.yaml
@@ -81,14 +80,15 @@
 3. [VirtualRouter Instance 배포 사전작업](#step3 "step3")
 4. [VirtualRouter Instance 배포](#step4 "step4")
 
-<h2 id="step0"> Step0. VirtualRouter Controller & Daemon deploy yaml 수정 </h2>
+<h2 id="step0"> Step0. VirtualRouter Controller & Daemon & VirtualRouter deploy yaml 수정 </h2>
 
 * 목적 : `deploy yaml에 이미지 registry, 버전 정보 수정`
 * 생성 순서 : 
-    * 아래의 command를 수정하여 사용하고자 하는 image 버전 정보를 수정한다. (기본 설정 버전은 0.0.1)
+    * 아래의 command를 수정하여 사용하고자 하는 image 버전 정보를 수정한다. (해당 버전에 맞게 설정 vx.y.z)
 	```bash
-            sed -i 's/0.0.1/'${VIRTUALROUTER_CONTROLLER_VERSION}'/g' controller_deploy.yaml
-            sed -i 's/0.0.1/'${VIRTUALROUTER_DAEMON_VERSION}'/g' daemon_deploy.yaml
+            sed -i 's/vx.y.z/'${VIRTUALROUTER_CONTROLLER_VERSION}'/g' controller_deploy.yaml
+            sed -i 's/vx.y.z/'${VIRTUALROUTER_DAEMON_VERSION}'/g' daemon_deploy.yaml
+            sed -i 's/vx.y.z/'${VIRTUALROUTER_VERSION}'/g' example-virtualrouter.yaml
 	```
 
 * 비고 :
@@ -96,34 +96,22 @@
 	```bash
             sed -i 's/tmaxcloudck\/virtualrouter-controller/'${REGISTRY}'\/virtualrouter-controller/g' controller_deploy.yaml 
             sed -i 's/tmaxcloudck\/virtualrouter-daemon/'${REGISTRY}'\/virtualrouter-daemon/g' daemon_deploy.yaml 
+            sed -i 's/tmaxcloudck\/virtualrouter/'${REGISTRY}'\/virtualrouter/g' example-virtualrouter.yaml
 	```
 
 
-<h2 id="step1"> Step 1. VirtualRouter의 네트워크 대역 설정 </h2>
+<h2 id="step1"> Step 1. VirtualRouter Controller&Daemon을 설치하기 위한 초기 설정 </h2>
 
-* 목적: `VirtualRouter에서 사용할 내부 & 외부 대역 설정`
-	* Linux Bridge를 생성하고 연결할 Interface를 찾기 위한 설정
-	* Pod 대역이 사용할 대역과 무관함!
 
-* <b>Daemon version v0.1.0 이상을 사용할 경우</b>
-	* Virtual Router를 띄울 K8S node에 annotation 추가
-	* 예제 :
-	    ```bash
-	    kubectl annotate nodes {node 이름} externalInterface={external용 Interface Name}
-	    kubectl annotate nodes {node 이름} internalInterface={internal용 Interface Name}
-	    ```
-* <b>Daemon version v0.1.0 이하를 사용할 경우</b>
-	* 생성 순서: daemon_deploy.yaml의 env 값에 Virtual Router를 사용할 Host의 내부&외부 대역을 기재. 
-	* 예제 :
-	    Host가 외부망으로 192.168.9.0/24 대역을 사용하고 내부망으로 10.0.0.0/24 대역을 사용하는경우([example daemon yaml](../deploy/daemon/deploy.yaml))
-	    ```yaml
-	    env:
-		- name: internalCIDR
-		  value: "10.0.0.0/24"
-		- name: externalCIDR
-		  value: "192.168.9.0/24"
-  	  ```
-
+* 목적 : `VirtualRouter에서 사용할 내부&외부용 NIC에 대한설정`
+* 순서 : daemon을 deploy할 노드에 label 추가 및 해당 노드의 NIC 이름을 annotation 으로 설정
+* 예제 :
+    ```bash
+    kubectl label nodes {node 이름} virtualrouter/daemon=deploy
+    kubectl annotate nodes {node 이름} externalInterface={external용 Interface Name}
+    kubectl annotate nodes {node 이름} internalInterface={internal용 Interface Name}
+    ```
+    
 
 <h2 id="step2"> Step 2. VirtualRouter Controller & Daemon 설치 </h2>
 
@@ -142,14 +130,9 @@
 
 <h2 id="step3"> Step 3. VirtualRouter Instance 배포 사전작업 </h2>
 
-* 목적 : `VirtualRouter Intance 배포를 위한 CRD 및 Role 적용`
+* 목적 : `VirtualRouter Intance 배포를 위한 CRD 적용`
 * 생성 순서: 
-1. Virtual Router가 사용하는 Serivce Account에 대한 role 적용
-    ```bash
-    kubectl apply -f virtualrouter-policy.yaml
-    ```
-
-2. Virtual Router가 사용할 NFV CRD 적용
+1. Virtual Router가 사용할 NFV CRD 적용
     ```bash
     kubectl apply -f natruleCRD.yaml.yaml -f firewallCRD.yaml -f loadbalancerCRD.yaml
     ```
@@ -162,21 +145,19 @@
 
     ex) Tenant Network 설정이 아래와 같을 때, yaml 예제([example-virtualrouter.yaml](../deploy/integrated/example-virtualrouter.yaml))
     - VLAN: 201
-    - Network CIDR: 10.10.10.0/24, 
-    - Default GW: 10.10.10.10
-    - VR에 할당할 ExternalIP: 192.168.9.35
-    - VR의 image: tmaxcloudck/virtualrouter:0.0.1
+    - Tenant의 내부 대역 Network CIDR: 10.10.10.0/24, 
+    - Virtual Router 내부 대역의 Interface의 IP 주소: 10.10.10.11
+    - Tenant의 외부 대역 Network CIDR: 192.168.8.0/24
+    - Virtual Router 외부 대역의 Interface의 IP 주소: 192.168.8.153
+    - Virtual Router 외부 대역의 게이트웨이 IP 주소: 192.168.8.1
     ```yaml
     spec:
-      deploymentName: example-virtualrouter
-      replicas: 1
-      vlanNumber: 201
-      internalIPs:
-      - 10.10.10.10/24
-      externalIPs:
-      - 192.168.9.35/24
-      internalCIDR: "10.10.10.0/24"
-      image: tmaxcloudck/virtualrouter:0.0.1
+      vlanNumber: 210
+      internalIP: 10.10.10.11
+      internalNetmask: 255.255.255.0
+      externalIP: 192.168.8.153
+      externalNetmask: 255.255.255.0
+      gatewayIP: 192.168.8.1
     ```
 
 2. Virtual Router Instance 배포

@@ -3,18 +3,16 @@ import os
 import getopt, sys
 import time
 
-# PKG_NAME = 'github.com/tmax-cloud/virtualrouter-controller'
 CONTROLLER_GO_BINARY_NAME = '../build/virtualroutermanager/virtualrouter-controller'
 CONTROLLER_PKG_NAME = '../cmd/virtualroutermanager/main.go'
 DAEMON_GO_BINARY_NAME = '../build/daemon/daemon'
 DAEMON_PKG_NAME = '../cmd/daemon/main.go'
 
-# DOCKER_REGISTRY = '10.0.0.4:5000/'
-DOCKER_REGISTRY = 'tmaxcloudck/'
+DOCKER_REGISTRY = 'registry.network-team.tmaxanc.com/cloud/'
 CONTROLLER_DOCKER_IMAGE_NAME = "virtualrouter-controller"
 CONTROLLER_DOCKER_IMAGE_TAG = "v0.1.2"
 DAEMON_DOCKER_IMAGE_NAME = 'virtualrouter-daemon'
-DAEMON_DOCKER_IMAGE_TAG = "v0.1.2"
+DAEMON_DOCKER_IMAGE_TAG = "v0.1.3-dev"
 
 def subprocess_open(command):
     p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
@@ -154,7 +152,7 @@ def main(argv):
                 sys.exit(1)
             print(out)
             print("Docker build done")
-        elif opt in ("dockerpush"):
+        elif opt in ("--dockerpush"):
             out, err = docker_push(name=docker_image_name,tag=docker_image_tag, registry=DOCKER_REGISTRY)
             if err != "":
                 print("Error: " + err )

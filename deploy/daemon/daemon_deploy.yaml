@@ -1,40 +1,44 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: networkdaemon
+  name: virtualrouter-daemon
   namespace: virtualrouter
   labels:
-    app: daemon
+    app: virtualrouter-daemon
 spec:
   selector:
     matchLabels:
-      name: networkdaemon
+      app: virtualrouter-daemon
   template:
     metadata:
       labels:
-        name: networkdaemon
+        app: virtualrouter-daemon
     spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: virtualrouter/daemon
+                    operator: In
+                    values:
+                      - deploy
       serviceAccount: virtualrouter-controller-sa
       hostNetwork: true
       hostPID: true
       containers:
       - name: networkdaemon
-        # image: tmaxcloudck/virtualrouter-daemon:v0.1.0
-        image: 10.0.0.4:5000/virtualrouter-daemon:v0.1.1
+        image: tmaxcloudck/virtualrouter-daemon:vx.y.z
         imagePullPolicy: Always
         env:
         - name: nodeName
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
-        # - name: internalCIDR
-        #   value: "10.0.0.0/24"
-        # - name: externalCIDR
-        #   value: "192.168.8.0/24"
         securityContext:
           capabilities:
             add:
-            - '*'
+            # - '*'
             - NET_RAW
             - NET_ADMIN
           privileged: true

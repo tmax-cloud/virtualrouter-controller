@@ -1,25 +1,25 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: vr-controller
+  name: virtualrouter-controller
   namespace: virtualrouter
   labels:
-    app: controller
+    app: virtualrouter-controller
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: controller
+      app: virtualrouter-controller
   template:
     metadata:
       namespace: virtualrouter
       labels:
-        app: controller
+        app: virtualrouter-controller
     spec:
       serviceAccount: virtualrouter-controller-sa
       containers:
       - name: controller
-        image: tmaxcloudck/virtualrouter-controller:v0.1.2
+        image: tmaxcloudck/virtualrouter-controller:vx.y.z
         imagePullPolicy: Always
         env:
         - name: POD_NAMESPACE
