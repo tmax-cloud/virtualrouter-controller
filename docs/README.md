@@ -260,7 +260,7 @@
           rules:
           - loadBalancerIP: 192.168.9.133  # LB IP
             loadBalancerPort: 10000        # LB port
-	    protocol: tcp		   # Protocol field
+            protocol: tcp		   # Protocol field (tcp|udp)
             backends:
             - backendIP: 10.10.10.1        # target1 IP
               backendPort: 20000           # target1 Port
