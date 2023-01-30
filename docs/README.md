@@ -248,7 +248,7 @@
         * 특정 VIP에 대한 Target (backend) 들이 수신하는 트래픽의 양은 weight들값에 비례함
         * (직관적인 운용을 위해 weight들의 총 합이 100이 되도록 할 것을 권장함
         * ex) 아래 예제의 경우 10.10.10.[1,2,3] 간에 2:3:5 비율로 부하 분산이 됨
-        * ex) [loadbalancerExample.yaml](https://github.com/tmax-cloud/virtualrouter/blob/main/deploy/loadbalancerExample.yaml)
+        * ex) [loadbalancerExample.yaml](https://github.com/tmax-cloud/virtualrouter/blob/develop/deploy/loadbalancerExample.yaml)
         
         ```yaml
         apiVersion: virtualrouter.tmax.hypercloud.com/v1
