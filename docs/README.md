@@ -272,7 +272,7 @@
               backendPort: 20000           # target1 Port
               weight: 30                   #
               healthcheckMethod: none      # No health-check for the target 2
-	    - backendIP: 10.10.10.3        # target3 IP
+            - backendIP: 10.10.10.3        # target3 IP
               backendPort: 20000           # target1 Port
               weight: 50                   #
               healthcheckMethod: tcp       # health-check: TCP handshake
