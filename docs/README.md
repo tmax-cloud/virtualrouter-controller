@@ -266,7 +266,7 @@
             - backendIP: 10.10.10.1        # target1 IP
               backendPort: 20000           # target1 Port
               weight: 20                   #
-	      healthcheckMethod: icmp      # healthcheck-method: icmp
+              healthcheckMethod: icmp      # healthcheck-method: icmp
 	      healthcheckIP: 10.10.10.1    # need to specify the health-check target's IP
             - backendIP: 10.10.10.2        # target2 IP
               backendPort: 20000           # target1 Port
