@@ -265,16 +265,16 @@
             backends:
             - backendIP: 10.10.10.1        # target1 IP
               backendPort: 20000           # target1 Port
-              weight: 20
+              weight: 20                   #
 	      healthcheckMethod: icmp      # healthcheck-method: icmp
 	      healthcheckIP: 10.10.10.1    # need to specify the health-check target's IP
             - backendIP: 10.10.10.2        # target2 IP
               backendPort: 20000           # target1 Port
-              weight: 30
+              weight: 30                   #
 	      healthcheckMethod: none      # No health-check for the target 2
 	    - backendIP: 10.10.10.3        # target3 IP
               backendPort: 20000           # target1 Port
-              weight: 50                   
+              weight: 50                   #
 	      healthcheckMethod: tcp       # health-check: TCP handshake
 	      healthcheckIP: 10.10.10.3    # need to specify the health-check target's IP
 	      healthcheckPort: 20000	   # In case the health-check method is TCP, the port number should be specified
