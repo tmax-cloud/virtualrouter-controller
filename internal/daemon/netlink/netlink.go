@@ -749,6 +749,12 @@ func SetInterface2Container(containerPid int, interfaceName string, isInternal b
 
 	// if link, peerLink, err := SetVethInterface(rootNetlinkHandle, newinterfaceName); err != nil {
 	if link, err := setLink(rootNetlinkHandle, veth); err != nil {
+		if veth.PeerName[:3] == "eth" {
+			if err := clearLink(rootNetlinkHandle, veth.PeerName); err != nil {
+				klog.ErrorS(err, "ClearVethInterface is failed", "interfaceName", newinterfacePeerName)
+				return err
+			}
+		}
 		return err
 	} else {
 		vethIntf = link
